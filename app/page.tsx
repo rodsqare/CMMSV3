@@ -1031,7 +1031,12 @@ export default function DashboardPage() {
       loadWorkOrders()
       loadUsers()
     }
-  }, [activeSection, orderCurrentPage, orderPerPage, loadWorkOrders])
+  }, [activeSection, orderCurrentPage, orderPerPage, orderFilters, searchOrder, loadWorkOrders])
+
+  // Reset pagination when filters or search term changes
+  useEffect(() => {
+    setOrderCurrentPage(1)
+  }, [orderFilters, searchOrder])
 
   // Load users when entering the 'tecnicos' section.
   useEffect(() => {
