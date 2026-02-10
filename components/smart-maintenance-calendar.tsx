@@ -55,7 +55,7 @@ export function SmartMaintenanceCalendar({
       const dateStr = date.toISOString().split('T')[0]
       
       const dayMaintenances = maintenances.filter(
-        (m) => m.proximaFecha.split('T')[0] === dateStr
+        (m) => m.proximaFecha && m.proximaFecha.split('T')[0] === dateStr
       )
 
       // Contar conflictos (múltiples en el mismo equipo)
@@ -223,7 +223,7 @@ export function SmartMaintenanceCalendar({
             const status = getDateStatus(date)
             const suggestion = smartSuggestions[dateStr]
             const dayMaintenances = maintenances.filter(
-              (m) => m.proximaFecha.split('T')[0] === dateStr
+              (m) => m.proximaFecha && m.proximaFecha.split('T')[0] === dateStr
             )
 
             let bgColor = 'bg-white'
@@ -289,7 +289,7 @@ export function SmartMaintenanceCalendar({
           </p>
           {(() => {
             const dateStr = hoveredDate.toISOString().split('T')[0]
-            const dayMaintenances = maintenances.filter((m) => m.proximaFecha.split('T')[0] === dateStr)
+            const dayMaintenances = maintenances.filter((m) => m.proximaFecha && m.proximaFecha.split('T')[0] === dateStr)
             const suggestion = smartSuggestions[dateStr]
 
             if (dayMaintenances.length === 0) {

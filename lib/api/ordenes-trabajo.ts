@@ -141,7 +141,14 @@ export async function getOrdenesTrabajo(filters?: OrdenesTrabajoFilters): Promis
       return result
     } catch (error) {
       console.error("[v0] getOrdenesTrabajo - DB Error:", error)
-      throw error
+      // Return fallback response instead of throwing
+      return {
+        data: [],
+        total: 0,
+        currentPage: filters?.page || 1,
+        lastPage: 1,
+        perPage: filters?.perPage || 10,
+      }
     }
   }
 
