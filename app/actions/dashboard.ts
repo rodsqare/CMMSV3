@@ -1,6 +1,6 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
+import { prisma, waitForDbInit } from "@/lib/prisma"
 
 export type DashboardStats = {
   usuariosCount: number
@@ -34,6 +34,9 @@ const mockDashboardStats: DashboardStats = {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   try {
+    // Wait for database initialization before proceeding
+    await waitForDbInit()
+    
     const [usuariosCount, equiposCount, mantenimientosCount, ordenesCount] = await Promise.all([
       prisma.usuario.count(),
       prisma.equipo.count(),

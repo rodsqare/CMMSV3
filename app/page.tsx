@@ -2664,6 +2664,27 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Fabricantes Actuales</h3>
+            <div className="flex flex-wrap gap-2">
+              {configManufacturers.length > 0 ? (
+                configManufacturers.map((manufacturer, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    {manufacturer}
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400">No hay fabricantes configurados</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardContent className="p-6">
