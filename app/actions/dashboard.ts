@@ -61,9 +61,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           id: true
         },
         where: {
-          marca: {
-            not: null
-          }
+          AND: [
+            {
+              marca: {
+                not: null
+              }
+            },
+            {
+              marca: {
+                not: ''
+              }
+            }
+          ]
         },
         orderBy: {
           _count: {
@@ -74,13 +83,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       })
       
       console.log("[v0] Equipment by manufacturer raw:", equipos)
+      console.log("[v0] Total equipment count:", equiposCount)
       
       equiposPorFabricante = equipos
-        .filter(e => e.marca != null)
+        .filter(e => e.marca != null && e.marca !== '')
         .map(e => ({
-          nombre: e.marca || "Desconocido",
+          nombre: e.marca?.trim() || "Desconocido",
           cantidad: e._count.id || 0
         }))
+      
+      console.log("[v0] Equipment by manufacturer after filtering:", equiposPorFabricante)
       
       // If no data from database, provide sample data for demonstration
       if (equiposPorFabricante.length === 0 && equiposCount > 0) {
