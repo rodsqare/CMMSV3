@@ -5,6 +5,7 @@ import { TooltipContent } from "@/components/ui/tooltip"
 import React from "react"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react" // Added useRef
+import { formatDateForInput } from "@/lib/utils"
 import { getDashboardStats, type DashboardStats } from "@/app/actions/dashboard"
 import { fetchEquipos, saveEquipo, removeEquipo, fetchEquipoDetails, getEquipo, checkEquipoAssociations, type Equipo } from "@/app/actions/equipos"
 import {
@@ -1144,6 +1145,8 @@ export default function DashboardPage() {
         estado: newOrderData.estado,
         tecnicoAsignadoId: newOrderData.tecnicoAsignadoId,
         fechaCreacion: newOrderData.fechaCreacion,
+        fechaInicio: newOrderData.fechaInicio,
+        fechaFinalizacion: newOrderData.fechaFinalizacion,
         horasTrabajadas: newOrderData.horasTrabajadas,
         costoRepuestos: newOrderData.costoRepuestos,
         costoTotal: newOrderData.costoTotal,
@@ -1246,13 +1249,24 @@ export default function DashboardPage() {
   const handleAssignTechnician = async () => {
     if (selectedOrder && selectedTechnicianId) {
       const result = await asignarTecnicoAOrden(selectedOrder.id, selectedTechnicianId)
-      if (result) {
+      if (result && result.success && result.data) {
+        // Update the selected order with the new technician data
+        setSelectedOrder(result.data)
+        // Also refresh the work orders list
         await loadWorkOrders()
+        // Show success feedback
+        toast({
+          title: "Técnico asignado",
+          description: "El técnico ha sido asignado a la orden de trabajo",
+        })
         setIsAssignDialogOpen(false)
-        setSelectedOrder(null)
         setSelectedTechnicianId(null)
       } else {
-        alert("Error al asignar técnico.")
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo asignar el técnico a la orden.",
+        })
       }
     }
   }
@@ -1260,14 +1274,25 @@ export default function DashboardPage() {
   const handleChangeStatus = async () => {
     if (selectedOrder && newStatus) {
       const result = await cambiarEstadoOrden(selectedOrder.id, newStatus, statusObservaciones || undefined)
-      if (result) {
+      if (result && result.success && result.data) {
+        // Update the selected order with the new data
+        setSelectedOrder(result.data)
+        // Also refresh the work orders list
         await loadWorkOrders()
+        // Show success feedback
+        toast({
+          title: "Estado actualizado",
+          description: "La orden de trabajo ha sido actualizada correctamente",
+        })
         setIsStatusDialogOpen(false)
-        setSelectedOrder(null)
         setNewStatus("")
         setStatusObservaciones("")
       } else {
-        alert("Error al cambiar estado.")
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cambiar el estado de la orden.",
+        })
       }
     }
   }
@@ -1584,7 +1609,13 @@ export default function DashboardPage() {
                                 <DropdownMenuItem
                                   onClick={() => {
                                     setSelectedOrder(order)
-                                    setNewOrderData(order)
+                                    // Format dates for input fields using formatDateForInput utility
+                                    setNewOrderData({
+                                      ...order,
+                                      fechaCreacion: formatDateForInput(order.fechaCreacion),
+                                      fechaInicio: formatDateForInput(order.fechaInicio),
+                                      fechaFinalizacion: formatDateForInput(order.fechaFinalizacion),
+                                    })
                                     setIsOrderDialogOpen(true)
                                   }}
                                 >
@@ -1674,10 +1705,10 @@ export default function DashboardPage() {
 
         {/* Create/Edit Order Dialog */}
         <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="order-form-desc">
             <DialogHeader>
               <DialogTitle>{selectedOrder ? "Editar Orden" : "Nueva Orden de Trabajo"}</DialogTitle>
-              <DialogDescription>
+              <DialogDescription id="order-form-desc">
                 {selectedOrder ? "Modifica los datos de la orden" : "Completa los datos para crear una nueva orden"}
               </DialogDescription>
             </DialogHeader>
@@ -1907,10 +1938,10 @@ export default function DashboardPage() {
 
         {/* Order Details Dialog */}
         <Dialog open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby="order-details-desc">
             <DialogHeader>
               <DialogTitle>Detalles de la Orden</DialogTitle>
-              <DialogDescription>{selectedOrder?.numeroOrden}</DialogDescription>
+              <DialogDescription id="order-details-desc">{selectedOrder?.numeroOrden}</DialogDescription>
             </DialogHeader>
             {selectedOrder && (
               <div className="space-y-6">
@@ -1984,10 +2015,10 @@ export default function DashboardPage() {
 
         {/* Assign Technician Dialog */}
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px]" aria-describedby="assign-tech-desc">
             <DialogHeader>
               <DialogTitle>Asignar Técnico</DialogTitle>
-              <DialogDescription>Selecciona un técnico para la orden {selectedOrder?.numeroOrden}</DialogDescription>
+              <DialogDescription id="assign-tech-desc">Selecciona un técnico para la orden {selectedOrder?.numeroOrden}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <Select onValueChange={(value) => setSelectedTechnicianId(Number(value))}>
@@ -2047,10 +2078,10 @@ export default function DashboardPage() {
 
         {/* Change Status Dialog */}
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-          <DialogContent>
+          <DialogContent aria-describedby="status-change-desc">
             <DialogHeader>
               <DialogTitle>Cambiar Estado</DialogTitle>
-              <DialogDescription>Actualiza el estado de la orden {selectedOrder?.numeroOrden}</DialogDescription>
+              <DialogDescription id="status-change-desc">Actualiza el estado de la orden {selectedOrder?.numeroOrden}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Select onValueChange={setNewStatus}>
