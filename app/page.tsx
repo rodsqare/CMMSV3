@@ -645,12 +645,16 @@ export default function DashboardPage() {
       }
 
       // Use deduplicated request to avoid concurrent calls
+      const cacheKey = `ordenes_${JSON.stringify(params)}`
+      console.log("[v0] loadWorkOrders - Cache key:", cacheKey)
+      
       const response = await deduplicateRequest(
-        `ordenes_${JSON.stringify(params)}`,
+        cacheKey,
         () => fetchOrdenesTrabajo(params),
         3 * 60 * 1000 // 3 minute cache
       )
 
+      console.log("[v0] loadWorkOrders - API Response:", response)
       setWorkOrders(response.data)
       setOrderTotalPages(response.lastPage) // Use renamed state
       console.log("[v0] loadWorkOrders - Successfully loaded", response.data.length, "items")
@@ -1132,28 +1136,43 @@ export default function DashboardPage() {
         observaciones: newOrderData.observaciones,
       }
 
-      console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
-      const savedOrder = await saveOrdenTrabajo(mappedData)
-
-      if (savedOrder) {
-        toast({
-          title: selectedOrder ? "Orden actualizada" : "Orden creada",
-          description: selectedOrder
-            ? "La orden de trabajo ha sido actualizada correctamente"
-            : "La orden de trabajo ha sido creada correctamente",
-        })
-        setIsOrderDialogOpen(false)
-        setNewOrderData({
-          tipo: "Preventivo",
-          prioridad: "media",
-          estado: "abierta",
-          fechaCreacion: new Date().toISOString().split("T")[0],
-        })
-        setSelectedOrder(null)
-        await loadWorkOrders()
-      } else {
-        throw new Error("No se recibió respuesta del servidor")
-      }
+  console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
+  const result = await saveOrdenTrabajo(mappedData)
+  
+  if (result.success && result.data) {
+  toast({
+  title: selectedOrder ? "Orden actualizada" : "Orden creada",
+  description: selectedOrder
+  ? "La orden de trabajo ha sido actualizada correctamente"
+  : "La orden de trabajo ha sido creada correctamente",
+  })
+  setIsOrderDialogOpen(false)
+  setNewOrderData({
+  tipo: "Preventivo",
+  prioridad: "media",
+  estado: "abierta",
+  fechaCreacion: new Date().toISOString().split("T")[0],
+  })
+  setSelectedOrder(null)
+  // Clear all order-related cache entries to force refresh
+  const params = {
+    estado: orderFilters.estado !== "all" ? orderFilters.estado : undefined,
+    prioridad: orderFilters.prioridad !== "all" ? orderFilters.prioridad : undefined,
+    tipo: orderFilters.tipo !== "all" ? orderFilters.tipo : undefined,
+    fechaDesde: orderFilters.fechaDesde || undefined,
+    fechaHasta: orderFilters.fechaHasta || undefined,
+    search: searchOrder || undefined,
+    page: orderCurrentPage,
+    perPage: orderPerPage,
+  }
+  const cacheKeyToClear = `ordenes_${JSON.stringify(params)}`
+  console.log("[v0] handleSaveOrder - Clearing cache with key:", cacheKeyToClear)
+  clearCache(cacheKeyToClear)
+  console.log("[v0] handleSaveOrder - Cache cleared, calling loadWorkOrders")
+  await loadWorkOrders()
+  } else {
+  throw new Error(result.error || "No se recibió respuesta del servidor")
+  }
     } catch (error) {
       console.error("[v0] handleSaveOrder - Error:", error)
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"

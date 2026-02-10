@@ -130,9 +130,23 @@ function transformOrdenToAPI(orden: Partial<OrdenTrabajo>): any {
 const isServer = typeof window === "undefined"
 
 export async function getOrdenesTrabajo(filters?: OrdenesTrabajoFilters): Promise<OrdenesTrabajoResponse> {
-  const client = isServer ? serverApiClient : apiClient
-
   console.log("[v0] getOrdenesTrabajo - Building request with filters:", filters)
+
+  // If on server side, use direct DB call
+  if (typeof window === 'undefined') {
+    console.log("[v0] getOrdenesTrabajo - Using server DB function")
+    try {
+      const result = await getOrdenesDB(filters)
+      console.log("[v0] getOrdenesTrabajo - DB result:", result)
+      return result
+    } catch (error) {
+      console.error("[v0] getOrdenesTrabajo - DB Error:", error)
+      throw error
+    }
+  }
+
+  // If on client side, use API client
+  const client = apiClient
 
   const params = new URLSearchParams()
 
