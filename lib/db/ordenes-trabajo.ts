@@ -7,12 +7,14 @@ function transformFromDB(record: any): OrdenTrabajo {
     id: record.id,
     numeroOrden: record.numero_orden,
     equipoId: record.equipo_id,
+    equipoNombre: record.equipo?.nombre || '',
     tipo: record.tipo,
     prioridad: record.prioridad,
     estado: record.estado,
     descripcion: record.descripcion,
     fechaCreacion: record.fecha_solicitud?.toISOString() || record.fecha_programada?.toISOString(),
     tecnicoAsignadoId: record.asignado_a,
+    tecnicoAsignadoNombre: record.tecnico?.nombre || '',
     horasTrabajadas: record.tiempo_estimado,
     costoRepuestos: record.costo_estimado ? Number(record.costo_estimado) : undefined,
     costoTotal: record.costo_real ? Number(record.costo_real) : undefined,
@@ -73,7 +75,7 @@ export async function getOrdenDB(id: number): Promise<OrdenTrabajo | null> {
   }
 }
 
-export async function getOrdenesDB(filters?: any): Promise<OrdenTrabajo[]> {
+export async function getOrdenesDB(filters?: any): Promise<any> {
   try {
     const where: any = {}
 
@@ -89,22 +91,43 @@ export async function getOrdenesDB(filters?: any): Promise<OrdenTrabajo[]> {
       where.equipo_id = filters.equipo_id
     }
 
-    const ordenes = await prisma.ordenTrabajo.findMany({
-      where,
-      include: {
-        equipo: true,
-        tecnico: true,
-        creador: true,
-      },
-      orderBy: { created_at: 'desc' },
-      take: filters?.limit || 100,
-      skip: filters?.offset || 0,
-    })
+    const perPage = filters?.perPage || 10
+    const page = filters?.page || 1
+    const skip = (page - 1) * perPage
 
-    return ordenes.map(transformFromDB)
+    const [ordenes, total] = await Promise.all([
+      prisma.ordenTrabajo.findMany({
+        where,
+        include: {
+          equipo: true,
+          tecnico: true,
+          creador: true,
+        },
+        orderBy: { created_at: 'desc' },
+        take: perPage,
+        skip: skip,
+      }),
+      prisma.ordenTrabajo.count({ where }),
+    ])
+
+    const lastPage = Math.ceil(total / perPage)
+
+    return {
+      data: ordenes.map(transformFromDB),
+      total,
+      currentPage: page,
+      lastPage,
+      perPage,
+    }
   } catch (error) {
     console.error('[v0] getOrdenesDB - Error:', error)
-    return []
+    return {
+      data: [],
+      total: 0,
+      currentPage: 1,
+      lastPage: 1,
+      perPage: 10,
+    }
   }
 }
 

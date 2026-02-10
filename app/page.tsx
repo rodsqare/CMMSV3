@@ -655,9 +655,18 @@ export default function DashboardPage() {
       )
 
       console.log("[v0] loadWorkOrders - API Response:", response)
+      
+      // Ensure response has the correct structure
+      if (!response || !response.data) {
+        console.error("[v0] loadWorkOrders - Invalid response structure:", response)
+        setWorkOrders([])
+        setOrderTotalPages(1)
+        return
+      }
+      
       setWorkOrders(response.data)
       setOrderTotalPages(response.lastPage) // Use renamed state
-      console.log("[v0] loadWorkOrders - Successfully loaded", response.data.length, "items")
+      console.log("[v0] loadWorkOrders - Successfully loaded", response.data?.length ?? 0, "items")
     } catch (error) {
       console.error("[v0] loadWorkOrders - Error:", error)
       setWorkOrders([])
