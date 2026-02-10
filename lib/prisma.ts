@@ -1,6 +1,15 @@
 import { PrismaClient } from '@prisma/client'
 import { initializeDatabase } from './db-init'
 
+// Check DATABASE_URL availability
+console.log('[PRISMA] Environment check:')
+console.log('[PRISMA] - DATABASE_URL:', process.env.DATABASE_URL ? '✓ Set' : '✗ Not set')
+console.log('[PRISMA] - MYSQL_URL:', process.env.MYSQL_URL ? '✓ Set' : '✗ Not set')
+if (!process.env.DATABASE_URL && !process.env.MYSQL_URL) {
+  console.error('[PRISMA] ⚠️ WARNING: No database URL environment variable found!')
+  console.error('[PRISMA] Please add DATABASE_URL to your Vars in the v0 sidebar')
+}
+
 const globalForPrisma = globalThis as unknown as { 
   prisma: PrismaClient
   dbInitialized: boolean
@@ -36,7 +45,12 @@ if (!globalForPrisma.dbInitialized && !globalForPrisma.dbInitPromise) {
 
 // Export a function to wait for initialization
 export async function waitForDbInit() {
+  console.log('[PRISMA] waitForDbInit called, dbInitPromise exists:', !!globalForPrisma.dbInitPromise)
   if (globalForPrisma.dbInitPromise) {
+    console.log('[PRISMA] Waiting for database initialization promise...')
     await globalForPrisma.dbInitPromise
+    console.log('[PRISMA] Database initialization promise resolved')
+  } else {
+    console.log('[PRISMA] No initialization promise, database may already be initialized:', globalForPrisma.dbInitialized)
   }
 }

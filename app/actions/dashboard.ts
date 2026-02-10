@@ -34,8 +34,17 @@ const mockDashboardStats: DashboardStats = {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   try {
-    // Wait for database initialization before proceeding
+    // Check DATABASE_URL is available
+    console.log("[v0] DATABASE_URL available:", !!process.env.DATABASE_URL)
+    if (!process.env.DATABASE_URL) {
+      console.error("[v0] ERROR: DATABASE_URL is not set in environment variables!")
+      console.error("[v0] Please add DATABASE_URL to your project's Vars section in the sidebar")
+      console.error("[v0] Format: mysql://user:password@host:port/database")
+    }
+    
+    console.log("[v0] Starting dashboard stats fetch...")
     await waitForDbInit()
+    console.log("[v0] Database initialized, querying counts...")
     
     const [usuariosCount, equiposCount, mantenimientosCount, ordenesCount] = await Promise.all([
       prisma.usuario.count(),
@@ -196,6 +205,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     }
   } catch (error) {
     console.error("[v0] Error fetching dashboard stats:", error)
+    if (error instanceof Error) {
+      console.error("[v0] Error message:", error.message)
+      console.error("[v0] Error stack:", error.stack)
+    }
     console.log("[v0] Returning mock data as fallback")
     return mockDashboardStats
   }
