@@ -29,7 +29,7 @@ export function transformMantenimientoToUI(data: any): Mantenimiento {
     equipo: data.equipo?.nombre || data.equipo,
     tipo: data.tipo,
     procedimiento: data.procedimiento,
-    resultado: data.procedimiento,
+    resultado: data.resultado,
     frecuencia: data.frecuencia,
     ultimaFecha: data.ultima_realizacion,
     ultima_realizacion: data.ultima_realizacion,

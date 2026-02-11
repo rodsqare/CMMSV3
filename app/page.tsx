@@ -1568,7 +1568,47 @@ export default function DashboardPage() {
                         <td className="px-4 py-3">{order.equipoNombre}</td>
                         <td className="px-4 py-3">{order.tipo}</td>
                         <td className="px-4 py-3">{getPriorityBadge(order.prioridad)}</td>
-                        <td className="px-4 py-3">{getEstadoOrdenBadge(order.estado)}</td>
+                        <td className="px-4 py-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="p-0">
+                                {getEstadoOrdenBadge(order.estado)}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order)
+                                setNewStatus('abierta')
+                                setStatusObservaciones('')
+                                setIsStatusDialogOpen(true)
+                              }}>Abierta</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order)
+                                setNewStatus('en_progreso')
+                                setStatusObservaciones('')
+                                setIsStatusDialogOpen(true)
+                              }}>En Progreso</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order)
+                                setNewStatus('completada')
+                                setStatusObservaciones('')
+                                setIsStatusDialogOpen(true)
+                              }}>Completada</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order)
+                                setNewStatus('pospuesta')
+                                setStatusObservaciones('')
+                                setIsStatusDialogOpen(true)
+                              }}>Pospuesta</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedOrder(order)
+                                setNewStatus('cancelada')
+                                setStatusObservaciones('')
+                                setIsStatusDialogOpen(true)
+                              }}>Cancelada</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
                         <td className="px-4 py-3">
                           {order.tecnicoAsignadoNombre || <span className="text-gray-400 text-sm">Sin asignar</span>}
                         </td>
