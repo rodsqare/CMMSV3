@@ -35,30 +35,41 @@ export async function uploadDocumento(
   subidoPorId: number,
   token: string,
 ): Promise<Documento> {
+  console.log('[v0] uploadDocumento - token present:', !!token, 'token length:', token?.length)
+  
   if (!token) {
     throw new Error("No authentication token found. Please log in again.")
   }
 
   const uploadUrl = `/api/equipos/${equipoId}/documentos`
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    Authorization: `Bearer ${token}`,
-  }
+  console.log('[v0] uploadDocumento - uploading to:', uploadUrl)
 
   const formData = new FormData()
   formData.append("archivo", file)
   formData.append("subido_por_id", subidoPorId.toString())
 
+  console.log('[v0] uploadDocumento - making request with bearer token')
+  // Fetch with credentials (incluye cookies) y Authorization header
   const response = await fetch(uploadUrl, {
     method: "POST",
-    headers,
+    credentials: "include", // Incluye cookies HTTP-only
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: formData,
   })
 
+  console.log('[v0] uploadDocumento - response status:', response.status)
+  
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`Failed to upload document: ${response.statusText}`)
+    console.log('[v0] uploadDocumento - error response:', errorText)
+    try {
+      const errorData = JSON.parse(errorText)
+      throw new Error(errorData.error || `Failed to upload document: ${response.statusText}`)
+    } catch (e) {
+      throw new Error(`Failed to upload document: ${response.statusText}`)
+    }
   }
 
   const result = await response.json()

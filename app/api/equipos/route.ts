@@ -6,7 +6,7 @@ import { z } from 'zod'
 // GET - Listar equipos con filtros
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth()
+    await requireAuth(request)
     
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo')
@@ -74,7 +74,7 @@ const createEquipoSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth()
+    const session = await requireAuth(request)
     const body = await request.json()
     
     const validation = createEquipoSchema.safeParse(body)

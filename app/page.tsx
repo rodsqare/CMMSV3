@@ -2366,36 +2366,136 @@ export default function DashboardPage() {
   }
 
   const handleSaveEquipment = async () => {
+    // Validate form
     const errors: Record<string, string> = {}
 
+    // Codigo Institucional validation
+    if (!equipmentForm.codigoInstitucional || equipmentForm.codigoInstitucional.trim() === "") {
+      errors.codigoInstitucional = "El código institucional es obligatorio"
+    } else if (!/^\d{12}$/.test(equipmentForm.codigoInstitucional)) {
+      errors.codigoInstitucional = "El código institucional debe tener exactamente 12 dígitos"
+    }
+
+    // Número de Serie - Mínimo 3 caracteres
     if (!equipmentForm.numeroSerie || equipmentForm.numeroSerie.trim() === "") {
       errors.numeroSerie = "El número de serie es requerido"
+    } else if (equipmentForm.numeroSerie.trim().length < 3) {
+      errors.numeroSerie = "El número de serie debe tener al menos 3 caracteres"
     }
+
+    // Nombre del Equipo - Mínimo 3 caracteres
     if (!equipmentForm.nombre || equipmentForm.nombre.trim() === "") {
       errors.nombre = "El nombre del equipo es requerido"
+    } else if (equipmentForm.nombre.trim().length < 3) {
+      errors.nombre = "El nombre del equipo debe tener al menos 3 caracteres"
     }
+
+    // Fabricante - Requerido
     if (!equipmentForm.fabricante || equipmentForm.fabricante.trim() === "") {
       errors.fabricante = "El fabricante es requerido"
     }
+
+    // Modelo - Requerido
     if (!equipmentForm.modelo || equipmentForm.modelo.trim() === "") {
       errors.modelo = "El modelo es requerido"
     }
+
+    // Ubicación - Requerida
     if (!equipmentForm.ubicacion || equipmentForm.ubicacion.trim() === "") {
       errors.ubicacion = "La ubicación es requerida"
     }
-    if (!equipmentForm.fechaInstalacion) {
-      // Changed from fechaAdquisicion to fechaInstalacion based on form field
-      errors.fechaInstalacion = "La fecha de instalación es requerida"
+
+    if (!equipmentForm.servicio || equipmentForm.servicio.trim() === "") {
+      errors.servicio = "El servicio es obligatorio"
+    } else if (equipmentForm.servicio.trim().length < 3) {
+      errors.servicio = "El servicio debe tener al menos 3 caracteres"
     }
-    if (!equipmentForm.estado) {
-      errors.estado = "Debe seleccionar un estado"
+
+    if (!equipmentForm.nivelRiesgo || equipmentForm.nivelRiesgo.trim() === "") {
+      errors.nivelRiesgo = "El nivel de riesgo es obligatorio"
     }
+
+    // Validación de Fechas Lógicas
+    if (equipmentForm.fechaRetiro && equipmentForm.fechaInstalacion) {
+      const fechaRetiro = new Date(equipmentForm.fechaRetiro)
+      const fechaInstalacion = new Date(equipmentForm.fechaInstalacion)
+      if (fechaInstalacion > fechaRetiro) {
+        errors.fechaInstalacion = "La fecha de instalación debe ser anterior a la fecha de adquisición"
+      }
+    }
+
+    // Vencimiento de Garantía debe ser futuro
+    if (equipmentForm.vencimientoGarantia) {
+      const vencimiento = new Date(equipmentForm.vencimientoGarantia)
+      const hoy = new Date()
+      hoy.setHours(0, 0, 0, 0)
+      if (vencimiento < hoy) {
+        errors.vencimientoGarantia = "El vencimiento de garantía debe ser una fecha futura"
+      }
+    }
+
+    // Teléfono del Proveedor - Formato válido si se proporciona
+    if (equipmentForm.proveedorTelefono && equipmentForm.proveedorTelefono.trim() !== "") {
+      const phoneRegex = /^[\d\s\-+()]{7,20}$/
+      if (!phoneRegex.test(equipmentForm.proveedorTelefono)) {
+        errors.proveedorTelefono = "Formato de teléfono inválido"
+      }
+    }
+
+    // Frecuencia - Validación
+    const isDC = equipmentForm.voltaje?.toUpperCase().includes("DC")
+
+    if (!isDC && equipmentForm.frecuencia && equipmentForm.frecuencia.trim() !== "") {
+      const frecuenciaValue = equipmentForm.frecuencia.trim()
+
+      // Valid formats: 50 Hz, 60 Hz, 50-60 Hz, 50–60 Hz (with en-dash)
+      const validFormatRegex = /^(50|60|50[-–]\s*60)\s*(Hz|hz)?$/i
+
+      if (!validFormatRegex.test(frecuenciaValue)) {
+        errors.frecuencia = "Formato válido: 50 Hz, 60 Hz o 50-60 Hz"
+      } else {
+        // Extract numeric values to validate range (49-61 Hz)
+        const numericMatch = frecuenciaValue.match(/\d+/g)
+        if (numericMatch) {
+          const values = numericMatch.map(Number)
+          const outOfRange = values.some((val) => val < 49 || val > 61)
+
+          if (outOfRange) {
+            errors.frecuencia = "La frecuencia debe estar entre 49-61 Hz"
+          }
+        }
+      }
+    }
+
+    // Estado del Equipo - Requerido
     if (!equipmentForm.estadoEquipo) {
       errors.estadoEquipo = "Debe seleccionar un estado del equipo"
     }
 
+    // Estado - Requerido
+    if (!equipmentForm.estado) {
+      errors.estado = "Debe seleccionar un estado"
+    }
+
+    // Si hay errores, mostrarlos y hacer scroll al primer campo con error
     if (Object.keys(errors).length > 0) {
       setEquipmentFormErrors(errors)
+
+      // Auto-scroll al primer campo con error
+      const firstErrorField = Object.keys(errors)[0]
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorField)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" })
+          element.focus()
+        }
+      }, 100)
+
+      toast({
+        variant: "destructive",
+        title: "Error de validación",
+        description: "Por favor corrija los errores en el formulario antes de guardar",
+      })
       return
     }
 
@@ -2418,11 +2518,68 @@ export default function DashboardPage() {
         resetEquipmentForm()
         await loadEquipment()
       } else {
-        setEquipmentFormErrors({ general: result.error || "Error al guardar el equipo" })
+        const backendErrors: Record<string, string> = {}
+
+        // Parse backend validation errors
+        if (result.error) {
+          try {
+            // Try to parse JSON error response
+            const errorMatch = result.error.match(/\{.*\}/)
+            if (errorMatch) {
+              const errorData = JSON.parse(errorMatch[0])
+
+              // Map backend field names to frontend field names
+              const fieldMapping: Record<string, string> = {
+                codigo_institucional: "codigoInstitucional",
+                fecha_ingreso: "fechaIngreso",
+                fecha_adquisicion: "fechaAdquisicion",
+                fecha_instalacion: "fechaInstalacion",
+                fecha_vencimiento_garantia: "fechaVencimientoGarantia",
+                numero_serie: "numeroSerie",
+                estado_equipo: "estadoEquipo",
+                nivel_riesgo: "nivelRiesgo",
+              }
+
+              if (errorData.errors) {
+                // Process each error field
+                Object.entries(errorData.errors).forEach(([backendField, messages]) => {
+                  const frontendField = fieldMapping[backendField] || backendField
+                  const errorMessages = Array.isArray(messages) ? messages : [messages]
+                  backendErrors[frontendField] = errorMessages[0]
+                })
+              }
+            }
+          } catch (e) {
+            // If parsing fails, handle specific known errors
+            if (result.error.includes("codigo_institucional")) {
+              backendErrors.codigoInstitucional = "Este código institucional ya está registrado"
+            } else if (result.error.includes("fecha_ingreso")) {
+              backendErrors.fechaIngreso = "La fecha de ingreso no puede ser futura"
+            } else {
+              backendErrors.general = result.error
+            }
+          }
+        }
+
+        setEquipmentFormErrors(backendErrors)
+
+        // Scroll to first error field
+        const firstErrorField = Object.keys(backendErrors)[0]
+        if (firstErrorField && firstErrorField !== "general") {
+          setTimeout(() => {
+            const element = document.getElementById(firstErrorField)
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth", block: "center" })
+              element.focus()
+            }
+          }, 100)
+        }
+
         toast({
           variant: "destructive",
           title: "Error al guardar equipo",
-          description: result.error || "No se pudo guardar el equipo. Por favor intente de nuevo.",
+          description:
+            backendErrors[Object.keys(backendErrors)[0]] || "No se pudo guardar el equipo. Por favor intente de nuevo.",
         })
       }
     } catch (error) {
@@ -2431,7 +2588,7 @@ export default function DashboardPage() {
       toast({
         variant: "destructive",
         title: "Error de conexión",
-        description: "No se pudo conectar al servidor para guardar el equipo.",
+        description: "No se pudo conectar con el servidor. Verifique su conexión e intente nuevamente.",
       })
     } finally {
       setEquipmentLoading(false)

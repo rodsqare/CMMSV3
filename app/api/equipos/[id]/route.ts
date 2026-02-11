@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    await requireAuth(request)
     const { id } = await params
     
     const equipo = await prisma.equipo.findUnique({
@@ -76,7 +76,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth()
+    const session = await requireAuth(request)
     const { id } = await params
     const body = await request.json()
     
@@ -160,7 +160,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireAuth()
+    const session = await requireAuth(request)
     const { id } = await params
     
     const equipo = await prisma.equipo.findUnique({

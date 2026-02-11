@@ -56,13 +56,29 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 // Middleware para verificar autenticación
-export async function requireAuth(): Promise<JWTPayload> {
-  const session = await getSession()
+export async function requireAuth(request?: any): Promise<JWTPayload> {
+  let session = await getSession()
+  console.log('[v0] requireAuth - session from cookies:', !!session)
+  
+  // Si no hay sesión en cookies, intentar obtener del header Authorization (Bearer token)
+  if (!session && request) {
+    const authHeader = request.headers.get('Authorization')
+    console.log('[v0] requireAuth - authHeader:', authHeader ? 'present' : 'missing')
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      console.log('[v0] requireAuth - token length:', token.length)
+      session = await verifyToken(token)
+      console.log('[v0] requireAuth - token verified:', !!session)
+    }
+  }
   
   if (!session) {
+    console.log('[v0] requireAuth - NO SESSION FOUND - throwing 401')
     throw new Error('No autorizado')
   }
   
+  console.log('[v0] requireAuth - session found:', session.email)
   return session
 }
 
