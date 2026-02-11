@@ -1,6 +1,6 @@
 import { apiClient } from "./client"
 
-// Now all requests go through apiClient which already has the correct base URL
+// All requests go through apiClient which uses Next.js API routes
 
 export interface Documento {
   id: number
@@ -39,8 +39,7 @@ export async function uploadDocumento(
     throw new Error("No authentication token found. Please log in again.")
   }
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-  const uploadUrl = `${API_BASE_URL}/equipos/${equipoId}/documentos`
+  const uploadUrl = `/api/equipos/${equipoId}/documentos`
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -68,7 +67,6 @@ export async function uploadDocumento(
 
 export async function downloadDocumento(documentoId: number): Promise<Blob> {
   const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 
   const headers: Record<string, string> = {
     Accept: "application/octet-stream",
@@ -78,7 +76,7 @@ export async function downloadDocumento(documentoId: number): Promise<Blob> {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}/documentos/${documentoId}/download`, {
+  const response = await fetch(`/api/documentos/${documentoId}/download`, {
     method: "GET",
     headers,
   })
@@ -95,11 +93,9 @@ export async function deleteDocumento(documentoId: number): Promise<void> {
 }
 
 export function getDocumentoUrl(urlArchivo: string): string {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-
   if (urlArchivo.startsWith("http")) {
     return urlArchivo
   }
-  const baseUrlWithoutApi = API_BASE_URL.replace("/api", "")
-  return `${baseUrlWithoutApi}/storage/${urlArchivo}`
+  // Use Next.js storage endpoint
+  return `/api/storage/${urlArchivo}`
 }

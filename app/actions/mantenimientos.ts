@@ -1,20 +1,8 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-
-export type Mantenimiento = {
-  id?: number
-  equipo_id: number
-  tipo: string
-  procedimiento?: string | null
-  frecuencia: string
-  ultima_realizacion?: string | null
-  proxima_programada: string
-  descripcion?: string | null
-  activo?: boolean
-  created_at?: string
-  updated_at?: string
-}
+import { transformMantenimientoToUI, type Mantenimiento } from "@/lib/mantenimiento-transform"
+import { createAuditLog } from "./logs"
 
 export async function getAllMantenimientos(params?: {
   page?: number
@@ -64,7 +52,10 @@ export async function getAllMantenimientos(params?: {
       prisma.mantenimiento.count({ where })
     ])
 
-    return { data, total, page, perPage }
+    // Transform data to UI format (camelCase)
+    const transformedData = data.map(transformMantenimientoToUI)
+
+    return { data: transformedData, total, page, perPage }
   } catch (error) {
     console.error("[v0] Error fetching mantenimientos:", error)
     return { data: [], total: 0, page: 1, perPage: 10 }
@@ -73,12 +64,16 @@ export async function getAllMantenimientos(params?: {
 
 export async function getMantenimientoById(id: number) {
   try {
-    return await prisma.mantenimiento.findUnique({
+    const data = await prisma.mantenimiento.findUnique({
       where: { id },
       include: {
         equipo: true,
       }
     })
+    
+    if (!data) return null
+    
+    return transformMantenimientoToUI(data)
   } catch (error) {
     console.error("[v0] Error fetching mantenimiento:", error)
     return null
@@ -129,6 +124,15 @@ export async function createMantenimiento(mantenimiento: any, usuarioId?: number
       }
     })
     console.log("[v0] Action: Maintenance created successfully", result)
+    
+    // Log the creation
+    await createAuditLog({
+      accion: 'CREAR',
+      modulo: 'MANTENIMIENTOS',
+      descripcion: `Mantenimiento ${mantenimiento.tipo} creado para equipo`,
+      datos: { mantenimientoId: result.id, tipo: mantenimiento.tipo, equipoId: mantenimiento.equipoId }
+    }).catch(err => console.error("[v0] Error logging mantenimiento creation:", err))
+    
     return { success: true, data: result }
   } catch (error: any) {
     console.error("[v0] Action: Error creating maintenance", error)
@@ -170,6 +174,15 @@ export async function updateMantenimiento(id: number, mantenimiento: any) {
       data: updateData
     })
     console.log("[v0] Action: Maintenance updated successfully", result)
+    
+    // Log the update
+    await createAuditLog({
+      accion: 'EDITAR',
+      modulo: 'MANTENIMIENTOS',
+      descripcion: `Mantenimiento ${id} actualizado`,
+      datos: { mantenimientoId: id, tipo: mantenimiento.tipo }
+    }).catch(err => console.error("[v0] Error logging mantenimiento update:", err))
+    
     return { success: true, data: result }
   } catch (error: any) {
     console.error("[v0] Action: Error updating maintenance", error)
@@ -182,9 +195,22 @@ export async function deleteMantenimiento(id: number) {
   console.log("[v0] Action: Deleting maintenance", id)
 
   try {
+    const mantenimiento = await prisma.mantenimiento.findUnique({ where: { id } })
+    
     await prisma.mantenimiento.delete({
       where: { id }
     })
+    
+    // Log the deletion
+    if (mantenimiento) {
+      await createAuditLog({
+        accion: 'ELIMINAR',
+        modulo: 'MANTENIMIENTOS',
+        descripcion: `Mantenimiento ${mantenimiento.tipo} eliminado`,
+        datos: { mantenimientoId: id, tipo: mantenimiento.tipo }
+      }).catch(err => console.error("[v0] Error logging mantenimiento deletion:", err))
+    }
+    
     return { success: true }
   } catch (error: any) {
     console.error("[v0] Action: Error deleting maintenance", error)

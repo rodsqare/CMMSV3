@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { createAuditLog } from "./logs"
 
 export type Equipo = {
   id?: number
@@ -183,6 +184,16 @@ export async function saveEquipo(data: Equipo, userId?: string): Promise<{ succe
     }
 
     console.log("[v0] Equipment saved successfully:", equipo)
+    
+    // Log the action
+    const isUpdate = data.id && data.id > 0
+    await createAuditLog({
+      accion: isUpdate ? 'EDITAR' : 'CREAR',
+      modulo: 'EQUIPOS',
+      descripcion: `Equipo ${data.nombre} ${isUpdate ? 'actualizado' : 'creado'}`,
+      datos: { equipoId: equipo.id, nombre: data.nombre, codigo: data.codigo }
+    }).catch(err => console.error("[v0] Error logging equipo operation:", err))
+    
     return { success: true, equipo }
   } catch (error) {
     console.error("[v0] Error saving equipo:", error)
@@ -200,9 +211,23 @@ export async function saveEquipo(data: Equipo, userId?: string): Promise<{ succe
 export async function removeEquipo(id: number, userId?: string): Promise<{ success: boolean; error?: string }> {
   try {
     console.log(`[v0] Server Action: removeEquipo called with ID ${id} and userId ${userId}`)
+    
+    const equipo = await prisma.equipo.findUnique({ where: { id } })
+    
     await prisma.equipo.delete({
       where: { id }
     })
+    
+    // Log the deletion
+    if (equipo) {
+      await createAuditLog({
+        accion: 'ELIMINAR',
+        modulo: 'EQUIPOS',
+        descripcion: `Equipo ${equipo.nombre} eliminado`,
+        datos: { equipoId: id, nombre: equipo.nombre, codigo: equipo.codigo }
+      }).catch(err => console.error("[v0] Error logging equipo deletion:", err))
+    }
+    
     return { success: true }
   } catch (error) {
     console.error("[v0] Error deleting equipo:", error)

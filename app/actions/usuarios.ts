@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
+import { createAuditLog } from "./logs"
 import bcrypt from "bcryptjs"
 
 export type Usuario = {
@@ -260,6 +261,14 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
           throw dbError
         }
       }
+      
+      // Log the update
+      await createAuditLog({
+        accion: 'EDITAR',
+        modulo: 'USUARIOS',
+        descripcion: `Usuario ${usuario.nombre} actualizado`,
+        datos: { usuarioId: usuario.id, nombre: usuario.nombre, rol: usuario.rol }
+      }).catch(err => console.error("[v0] Error logging usuario update:", err))
     } else {
       // Create new usuario
       if (!usuario.password) {
@@ -310,6 +319,14 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
         }
         localUsuariosStorage.push(savedUsuario)
       }
+      
+      // Log the creation
+      await createAuditLog({
+        accion: 'CREAR',
+        modulo: 'USUARIOS',
+        descripcion: `Nuevo usuario ${usuario.nombre} creado`,
+        datos: { usuarioId: savedUsuario.id, nombre: usuario.nombre, rol: usuario.rol }
+      }).catch(err => console.error("[v0] Error logging usuario creation:", err))
     }
 
     console.log("[v0] Usuario saved successfully:", { 
@@ -339,9 +356,22 @@ export async function removeUsuario(id: number): Promise<{
   error?: string
 }> {
   try {
+    const usuario = await prisma.usuario.findUnique({ where: { id } })
+    
     await prisma.usuario.delete({
       where: { id }
     })
+    
+    // Log the deletion
+    if (usuario) {
+      await createAuditLog({
+        accion: 'ELIMINAR',
+        modulo: 'USUARIOS',
+        descripcion: `Usuario ${usuario.nombre} eliminado`,
+        datos: { usuarioId: id, nombre: usuario.nombre }
+      }).catch(err => console.error("[v0] Error logging usuario deletion:", err))
+    }
+    
     return { success: true }
   } catch (error: any) {
     console.error("Error removing usuario:", error)
