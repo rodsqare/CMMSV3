@@ -33,7 +33,7 @@ async function addHeader(doc: jsPDF, title: string) {
 
   try {
     // Load hospital logo (left side)
-    const hospitalLogo = await loadImage("/public/logo.png")
+    const hospitalLogo = await loadImage("/logo.png")
     doc.addImage(hospitalLogo, "PNG", 15, 10, 30, 30)
   } catch (error) {
     console.log("[v0] Hospital logo not loaded, using placeholder")
@@ -44,7 +44,7 @@ async function addHeader(doc: jsPDF, title: string) {
 
   try {
     // Load government logo (right side)
-    const govLogo = await loadImage("/public/Gobierno.jpg")
+    const govLogo = await loadImage("/gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, 10, 30, 30)
   } catch (error) {
     console.log("[v0] Government logo not loaded, using placeholder")
@@ -231,7 +231,7 @@ export async function generateEquipmentTechnicalSheet(equipment: any) {
   let yPos = 10
 
   try {
-    const hospitalLogo = await loadImage("/public/logo.png")
+    const hospitalLogo = await loadImage("/logo.png")
     doc.addImage(hospitalLogo, "PNG", 15, yPos, 30, 30)
   } catch (error) {
     console.log("[v0] Hospital logo not loaded, using placeholder")
@@ -240,7 +240,7 @@ export async function generateEquipmentTechnicalSheet(equipment: any) {
   }
 
   try {
-    const govLogo = await loadImage("/public/Gobierno.jpg")
+    const govLogo = await loadImage("/gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, yPos, 30, 30)
   } catch (error) {
     console.log("[v0] Government logo not loaded, using placeholder")
@@ -565,7 +565,7 @@ export async function generateWorkOrderPDF(orden: any, equipo?: any) {
 
   // Header with logos
   try {
-    const hospitalLogo = await loadImage("/public/logo.png")
+    const hospitalLogo = await loadImage("/logo.png")
     doc.addImage(hospitalLogo, "PNG", 15, yPos, 30, 30)
   } catch (error) {
     console.log("[v0] Hospital logo not loaded, creating blue circle")
@@ -579,7 +579,7 @@ export async function generateWorkOrderPDF(orden: any, equipo?: any) {
   }
 
   try {
-    const govLogo = await loadImage("/public/Gobierno.jpg")
+    const govLogo = await loadImage("/gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, yPos, 30, 30)
   } catch (error) {
     console.log("[v0] Government logo not loaded, creating blue circle")
