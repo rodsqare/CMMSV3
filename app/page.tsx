@@ -111,7 +111,7 @@ import { generatePDF, downloadPDF, generateEquipmentTechnicalSheet, generateWork
 import { canAccessSection, type CurrentUser, type RoleType, type PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from "@/lib/utils/permissions" // Import DEFAULT_PERMISSIONS_BY_ROLE
 import { filterLogs } from "@/lib/api/logs"
 import { fetchAuditLogs } from "@/app/actions/logs"
-import { getNotifications, markAsRead, markAllAsRead, type Notification } from "@/lib/api/notifications"
+import { type Notification } from "@/app/actions/notificaciones"
 import { Alert, AlertDescription } from "@/components/ui/alert" // Added Alert component
 import { EquipmentCombobox } from "@/components/equipment-combobox"
 import { useToast } from "@/components/ui/use-toast" // Imported toast
@@ -122,7 +122,7 @@ import { getDocumentoUrl } from "@/lib/api/documentos" // Imported getDocumentoU
 // import { checkUpcomingMaintenances } from "@/lib/api/mantenimientos"
 
 // ADDED: Helper function to format dates to DD-MM-YYYY
-function formatDate(dateString: string | undefined | null): string {
+function formatDate(dateString: string | Date | undefined | null): string {
   if (!dateString) return "-"
 
   try {
@@ -429,7 +429,7 @@ export default function DashboardPage() {
   const [selectedMaintenance, setSelectedMaintenance] = useState<Mantenimiento | null>(null)
   const [maintenanceFormErrors, setMaintenanceFormErrors] = useState<Record<string, string>>({}) // ADDED
   // CHANGE: Removed default values from frecuencia field
-  const [maintenanceForm, setMaintenanceForm] = useState<Partial<Mantenimiento>>({ resultado: "pendiente" }) // ADDED
+  const [maintenanceForm, setMaintenanceForm] = useState<Partial<Mantenimiento>>({})
 
   const [workOrders, setWorkOrders] = useState<OrdenTrabajo[]>([])
   const [orderFilters, setOrderFilters] = useState({
@@ -467,6 +467,7 @@ export default function DashboardPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false)
 
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [authChecked, setAuthChecked] = useState(false) // NEW: Track if auth has been checked
 
   // ADDED: Audit log states
   const [auditLogs, setAuditLogs] = useState<any[]>([])
@@ -840,13 +841,14 @@ export default function DashboardPage() {
       setCurrentUser(currentUserWithPermissions)
       setUserRole(storedRole)
     }
-
-    setLoading(false)
+    
+    // Mark auth check as complete
+    setAuthChecked(true)
   }
 
   useEffect(() => {
     checkAuthentication()
-  }, [router])
+  }, [])
 
   // Moved useEffect hooks to the top level
   // Update total user pages and reset current page if it becomes invalid
@@ -924,7 +926,7 @@ export default function DashboardPage() {
   //   }
   // }, [activeSection])
 
-  // CHANGE: Load dashboard stats once when component mounts or user is authenticated
+  // CHANGE: Load dashboard stats once when authentication is checked
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -932,6 +934,7 @@ export default function DashboardPage() {
         const data = await getDashboardStats()
         console.log("[v0] Dashboard - stats received:", data)
         setStats(data)
+        setLoading(false)
       } catch (error) {
         console.error("[v0] Dashboard - error fetching stats:", error)
         setStats({
@@ -942,18 +945,16 @@ export default function DashboardPage() {
           equiposPorFabricante: [],
           mantenimientosPorMes: [],
         })
+        setLoading(false)
       }
     }
 
-    // Load stats when component mounts or when user is set
-    if (currentUser) {
-      fetchData()
-    } else if (!loading) {
-      // If loading is done but no currentUser, still try to fetch stats
-      // This handles cases where auth is bypassed or not required
+    // Load stats once authentication check is complete
+    if (authChecked) {
+      console.log("[v0] Dashboard - auth checked, fetching stats")
       fetchData()
     }
-  }, [currentUser, loading])
+  }, [authChecked])
 
   // --- Maintenance Loaders and Stats ---
   const loadMaintenanceSchedules = async () => {
@@ -985,7 +986,6 @@ export default function DashboardPage() {
           frecuencia: "Mensual",
           proximaFecha: "2024-08-15",
           ultimaFecha: "2024-07-15",
-          resultado: "Completado",
           observaciones: "Mantenimiento preventivo estándar realizado.",
         },
         {
@@ -996,7 +996,6 @@ export default function DashboardPage() {
           frecuencia: "N/A",
           proximaFecha: "2024-08-20",
           ultimaFecha: "2024-08-10",
-          resultado: "Pendiente",
           observaciones: "Falla en el display, requiere revisión.",
         },
       ])
@@ -2556,6 +2555,11 @@ export default function DashboardPage() {
         })
         setShowEquipmentForm(false)
         resetEquipmentForm()
+        
+        // Clear equipment cache to force refresh
+        const { clearCache } = await import("@/lib/utils/module-loader")
+        clearCache() // Clear all cache to ensure fresh data
+        
         await loadEquipment()
       } else {
         const backendErrors: Record<string, string> = {}
@@ -2658,6 +2662,11 @@ export default function DashboardPage() {
         setIsDeleteEquipmentDialogOpen(false)
         setSelectedEquipmentToDelete(null)
         setShowEquipmentDetails(false) // Close details if open
+        
+        // Clear equipment cache to force refresh
+        const { clearCache } = await import("@/lib/utils/module-loader")
+        clearCache() // Clear all cache to ensure fresh data
+        
         await loadEquipment()
       } else {
         toast({
@@ -4835,7 +4844,7 @@ export default function DashboardPage() {
   }
 
   // --- Maintenance Rendering Functions ---
-  const isOverdue = (dateString: string | undefined): boolean => {
+  const isOverdue = (dateString: string | Date | undefined): boolean => {
     if (!dateString) return false
     try {
       const today = new Date()
@@ -4861,7 +4870,7 @@ export default function DashboardPage() {
     }
   }
 
-  const isUpcoming = (dateString: string | undefined): boolean => {
+  const isUpcoming = (dateString: string | Date | undefined): boolean => {
     if (!dateString) return false
     try {
       const today = new Date()
@@ -5025,7 +5034,7 @@ export default function DashboardPage() {
 
   // Maintenance management functions
   const resetMaintenanceForm = () => {
-    setMaintenanceForm({ resultado: "pendiente" })
+    setMaintenanceForm({})
     setMaintenanceFormErrors({})
   }
 
@@ -5037,7 +5046,6 @@ export default function DashboardPage() {
       frecuencia: maintenance.frecuencia,
       proximaFecha: (maintenance as any).proxima_programada || (maintenance as any).proximaFecha,
       ultimaFecha: (maintenance as any).ultima_realizacion || (maintenance as any).ultimaFecha,
-      resultado: (maintenance as any).resultado || "pendiente",
       observaciones: (maintenance as any).observaciones || (maintenance as any).descripcion,
       descripcion: maintenance.descripcion,
       procedimiento: maintenance.procedimiento,
@@ -5318,7 +5326,10 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2">
-                        <Badge className={`${getMaintenanceStatusColor(m.resultado)}`}>{m.resultado || "N/A"}</Badge>
+                        {(() => {
+                          const status = isOverdue(m.proxima_programada) ? "Vencido" : isUpcoming(m.proxima_programada) ? "Próximo" : "Programado"
+                          return <Badge className={`${getMaintenanceStatusColor(status)}`}>{status}</Badge>
+                        })()}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600 max-w-xs truncate" title={m.observaciones}>
                         {m.observaciones || "N/A"}
@@ -5519,20 +5530,13 @@ export default function DashboardPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="resultado">Resultado</Label>
-              <Select
-                value={maintenanceForm.resultado || ""}
-                onValueChange={(value) => setMaintenanceForm({ ...maintenanceForm, resultado: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar resultado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="completado">Completado</SelectItem>
-                  <SelectItem value="vencido">Vencido</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="observaciones">Observaciones</Label>
+              <Textarea
+                id="observaciones"
+                placeholder="Notas sobre el mantenimiento"
+                value={maintenanceForm.observaciones || ""}
+                onChange={(e) => setMaintenanceForm({ ...maintenanceForm, observaciones: e.target.value })}
+              />
             </div>
             <div className="md:col-span-2 space-y-2">
               <Label htmlFor="observaciones">Observaciones *</Label>
@@ -5605,9 +5609,9 @@ export default function DashboardPage() {
                   <strong>Última Fecha:</strong> {formatDate(selectedMaintenance.ultimaFecha)}
                 </div>
                 <div>
-                  <strong>Resultado:</strong>
-                  <Badge className={`ml-2 ${getMaintenanceStatusColor(selectedMaintenance.resultado)}`}>
-                    {selectedMaintenance.resultado || "N/A"}
+                  <strong>Estado:</strong>
+                  <Badge className={`ml-2 ${getMaintenanceStatusColor(isOverdue(selectedMaintenance.proximaFecha) ? "Vencido" : isUpcoming(selectedMaintenance.proximaFecha) ? "Próximo" : "Programado")}`}>
+                    {isOverdue(selectedMaintenance.proximaFecha) ? "Vencido" : isUpcoming(selectedMaintenance.proximaFecha) ? "Próximo" : "Programado"}
                   </Badge>
                 </div>
               </div>
@@ -6286,9 +6290,19 @@ export default function DashboardPage() {
 
   const loadNotifications = async () => {
     try {
-      const notifs = await getNotifications()
+      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
+      if (!userId) {
+        console.log("[v0] No user ID available for loading notifications")
+        setNotifications([])
+        setUnreadCount(0)
+        return
+      }
+      
+      const { getNotificationsForUser } = await import("@/app/actions/notificaciones")
+      const notifs = await getNotificationsForUser(userId)
       setNotifications(notifs)
       setUnreadCount(notifs.filter((n) => !n.leida).length)
+      console.log("[v0] Loaded notifications:", notifs.length)
     } catch (error) {
       console.error("[v0] Error loading notifications:", error)
       setNotifications([])
@@ -6297,14 +6311,30 @@ export default function DashboardPage() {
   }
 
   const handleMarkNotificationAsRead = useCallback(async (id: number) => {
-    await markAsRead(id)
-    await loadNotifications()
-  }, [])
+    try {
+      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
+      if (!userId) return
+      
+      const { markNotificationAsRead } = await import("@/app/actions/notificaciones")
+      await markNotificationAsRead(id, userId)
+      await loadNotifications()
+    } catch (error) {
+      console.error("[v0] Error marking notification as read:", error)
+    }
+  }, [currentUser?.id])
 
   const handleMarkAllAsRead = useCallback(async () => {
-    await markAllAsRead()
-    await loadNotifications()
-  }, [])
+    try {
+      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
+      if (!userId) return
+      
+      const { markAllNotificationsAsRead } = await import("@/app/actions/notificaciones")
+      await markAllNotificationsAsRead(userId)
+      await loadNotifications()
+    } catch (error) {
+      console.error("[v0] Error marking all notifications as read:", error)
+    }
+  }, [currentUser?.id])
 
   // ADDED: Logo change handler
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

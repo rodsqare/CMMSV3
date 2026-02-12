@@ -222,27 +222,50 @@ export async function deleteMantenimiento(id: number) {
 export async function getMantenimientosStats() {
   try {
     const today = new Date()
+    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
     
-    const [total, preventivo, correctivo, activos, pendientes, vencidos] = await Promise.all([
-      prisma.mantenimiento.count(),
-      prisma.mantenimiento.count({ where: { tipo: 'preventivo' } }),
-      prisma.mantenimiento.count({ where: { tipo: 'correctivo' } }),
+    // Calculate stats in parallel
+    const [total, vencidos, proximos, completados] = await Promise.all([
+      // Total active maintenance records
       prisma.mantenimiento.count({ where: { activo: true } }),
-      prisma.mantenimiento.count({ where: { proxima_programada: { gte: today }, activo: true } }),
-      prisma.mantenimiento.count({ where: { proxima_programada: { lt: today }, activo: true } }),
+      
+      // Overdue maintenance (proxima_programada < today)
+      prisma.mantenimiento.count({ 
+        where: { 
+          proxima_programada: { lt: today },
+          activo: true 
+        } 
+      }),
+      
+      // Upcoming in next 7 days (today <= proxima_programada <= nextWeek)
+      prisma.mantenimiento.count({ 
+        where: { 
+          proxima_programada: { gte: today, lte: nextWeek },
+          activo: true 
+        } 
+      }),
+      
+      // Completed maintenance in the last 30 days (count MantenimientoRealizado)
+      prisma.mantenimientoRealizado.count({ 
+        where: { 
+          fecha_realizacion: { gte: thirtyDaysAgo }
+        } 
+      }),
     ])
 
     return {
-      total,
-      preventivo,
-      correctivo,
-      activos,
-      pendientes,
       vencidos,
+      proximos,
+      completados,
+      total,
     }
   } catch (error) {
-    console.error("[v0] Error fetching stats:", error)
-    return { total: 0, preventivo: 0, correctivo: 0, activos: 0, pendientes: 0, vencidos: 0 }
+    console.error("[v0] Error fetching maintenance stats:", error)
+    if (error instanceof Error) {
+      console.error("[v0] Error message:", error.message)
+    }
+    return { vencidos: 0, proximos: 0, completados: 0, total: 0 }
   }
 }
 
