@@ -75,8 +75,8 @@ export function AppSidebar({ activeSection, onSectionChange, userRole, currentUs
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-white">
-      <SidebarHeader className="border-b px-4 py-4">
-        <div className="flex items-center justify-between gap-3 mb-4">
+      <SidebarHeader className="border-b px-3 py-3">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {isMounted ? (
               <img
@@ -95,13 +95,13 @@ export function AppSidebar({ activeSection, onSectionChange, userRole, currentUs
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="h-7 w-7 shrink-0"
+            className="h-9 w-9 shrink-0 flex items-center justify-center hover:bg-gray-100 rounded-md transition-colors"
             title={state === 'expanded' ? 'Colapsar menú' : 'Expandir menú'}
           >
-            <Menu className="h-4 w-4" />
+            <Menu className="h-5 w-5 text-gray-700" />
           </Button>
         </div>
-        <div className="group-data-[collapsible=icon]:hidden">
+        <div className="group-data-[collapsible=icon]:hidden mt-3 pt-3 border-t">
           <div className="text-xs text-gray-600">Rol actual:</div>
           <div className="text-sm font-semibold text-blue-600">{roleLabels[userRole]}</div>
         </div>
