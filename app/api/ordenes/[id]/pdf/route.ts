@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const session = await requireAuth()
     const { id } = await params
     const ordenId = parseInt(id)
 
@@ -82,6 +82,23 @@ ${orden.notas || 'Sin notas'}
 ---
 Generado el: ${new Date().toLocaleString('es-ES')}
     `.trim()
+
+    // Create audit log for PDF export
+    console.log("[v0] Creating audit log for PDF - usuario_id:", session.id, "orden:", orden.numero_orden)
+    try {
+      await prisma.log.create({
+        data: {
+          usuario_id: session.id,
+          accion: 'Exportar',
+          modulo: 'Órdenes de Trabajo',
+          descripcion: `PDF exportado: Orden ${orden.numero_orden}`,
+          datos: { orden_id: ordenId, numero_orden: orden.numero_orden },
+        },
+      })
+      console.log("[v0] PDF audit log created successfully")
+    } catch (logError) {
+      console.error("[v0] Error creating PDF audit log:", logError)
+    }
 
     // Return as text/plain for now (can be enhanced to actual PDF later)
     return new Response(content, {

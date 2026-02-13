@@ -5,10 +5,13 @@ import { requireAuth } from '@/lib/auth'
 // GET - Reporte de equipos
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth()
+    console.log("[v0] Report equipos endpoint called")
+    const session = await requireAuth()
+    console.log("[v0] Session:", session?.id)
     
     const { searchParams } = new URL(request.url)
     const formato = searchParams.get('formato') || 'json'
+    console.log("[v0] Formato:", formato)
     
     // Estadísticas generales
     const totalEquipos = await prisma.equipo.count()
@@ -73,6 +76,27 @@ export async function GET(request: NextRequest) {
       },
       proximos_mantenimientos: proximosMantenimientos,
       equipos_criticos: equiposCriticos,
+    }
+    
+    // Create audit log for report generation
+    console.log("[v0] Creating audit log for report - usuario_id:", session.id)
+    try {
+      await prisma.log.create({
+        data: {
+          usuario_id: session.id,
+          accion: 'Exportar',
+          modulo: 'Reportes',
+          descripcion: `Reporte de equipos generado en formato ${formato}`,
+          datos: { 
+            formato, 
+            total_equipos: totalEquipos,
+            fecha_generacion: new Date().toISOString()
+          },
+        },
+      })
+      console.log("[v0] Audit log created successfully")
+    } catch (logError) {
+      console.error("[v0] Error creating audit log:", logError)
     }
     
     if (formato === 'json') {

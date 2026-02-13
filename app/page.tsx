@@ -109,7 +109,6 @@ import {
 import type { Mantenimiento } from "@/lib/api/mantenimientos"
 import { generatePDF, downloadPDF, generateEquipmentTechnicalSheet, generateWorkOrderPDF } from "@/lib/pdf-generator" // Added generateEquipmentTechnicalSheet, generateWorkOrderPDF
 import { canAccessSection, type CurrentUser, type RoleType, type PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from "@/lib/utils/permissions" // Import DEFAULT_PERMISSIONS_BY_ROLE
-import { filterLogs } from "@/lib/api/logs"
 import { fetchAuditLogs } from "@/app/actions/logs"
 import { type Notification } from "@/app/actions/notificaciones"
 import { Alert, AlertDescription } from "@/components/ui/alert" // Added Alert component
@@ -474,6 +473,8 @@ export default function DashboardPage() {
   const [logSearchTerm, setLogSearchTerm] = useState("")
   const [logActionFilter, setLogActionFilter] = useState("all")
   const [logCurrentPage, setLogCurrentPage] = useState(1)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const logsPerPage = 10
 
   const [notifications, setNotifications] = React.useState<Notification[]>([])
@@ -734,33 +735,48 @@ export default function DashboardPage() {
   }
 
   // ADDED: Load audit logs from backend when section becomes active
+  // Load initial audit logs when section changes
   useEffect(() => {
     if (activeSection === "auditoria") {
       loadAuditLogs()
     }
   }, [activeSection])
 
+  // Debounce search term (wait 500ms after user stops typing)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(logSearchTerm)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [logSearchTerm])
+
+  // Load audit logs when debounced search or filter changes
+  useEffect(() => {
+    if (activeSection === "auditoria") {
+      loadAuditLogs()
+    }
+  }, [debouncedSearchTerm, logActionFilter, activeSection])
+
   const loadAuditLogs = async () => {
     try {
-      const result = await fetchAuditLogs(logSearchTerm, logActionFilter, 100)
+      setLogsLoading(true)
       
-      // Handle both array and object responses
-      const logsData = Array.isArray(result) ? result : (result.data && Array.isArray(result.data) ? result.data : [])
+      const result = await fetchAuditLogs(debouncedSearchTerm, logActionFilter, 1000)
       
-      if (logsData.length > 0) {
-        setAuditLogs(logsData)
-        toast({
-          title: "Logs cargados",
-          description: `Se cargaron ${logsData.length} registros de auditoría`,
-        })
-      } else {
-        setAuditLogs([])
-        toast({
-          title: "Sin datos",
-          description: "No se encontraron registros de auditoría en la base de datos.",
-          variant: "destructive",
-        })
+      // Extract logs data from response
+      let logsData: any[] = []
+      
+      if (result && result.data && Array.isArray(result.data)) {
+        // Response format: { success: true, data: [...] }
+        logsData = result.data
+      } else if (Array.isArray(result)) {
+        // Direct array response
+        logsData = result
       }
+      
+      setAuditLogs(logsData)
+      setLogCurrentPage(1) // Reset to first page when filters change
     } catch (error) {
       console.error("[v0] loadAuditLogs - Error:", error)
       setAuditLogs([])
@@ -769,6 +785,8 @@ export default function DashboardPage() {
         description: "Error al cargar los registros de auditoría.",
         variant: "destructive",
       })
+    } finally {
+      setLogsLoading(false)
     }
   }
 
@@ -5785,7 +5803,7 @@ export default function DashboardPage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">Seleccione el tipo de información que desea incluir en el reporte</p>
+              <p className="text-xs text-gray-500">Seleccione el tipo de informaci��n que desea incluir en el reporte</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -5873,9 +5891,9 @@ export default function DashboardPage() {
     </div>
   )
 
-  const filteredLogs = filterLogs(auditLogs, logSearchTerm, logActionFilter)
-  const totalPagesLogs = Math.ceil(filteredLogs.length / logsPerPage)
-  const paginatedLogs = filteredLogs.slice((logCurrentPage - 1) * logsPerPage, logCurrentPage * logsPerPage)
+      // Don't filter again on client - already filtered on server by fetchAuditLogs
+      const totalPagesLogs = Math.ceil(auditLogs.length / logsPerPage)
+      const paginatedLogs = auditLogs.slice((logCurrentPage - 1) * logsPerPage, logCurrentPage * logsPerPage)
 
   const renderAuditoria = () => (
     <div className="flex flex-col gap-6">
@@ -5926,20 +5944,15 @@ export default function DashboardPage() {
               >
                 <option value="all">Todas las acciones</option>
                 <option value="Crear">Crear</option>
-                <option value="Actualizar">Actualizar</option>
+                <option value="Editar">Editar</option>
                 <option value="Eliminar">Eliminar</option>
                 <option value="Ver">Ver</option>
                 <option value="Descargar">Descargar</option>
                 <option value="Exportar">Exportar</option>
               </select>
             </div>
-            <div className="flex justify-end">
-              <button
-                onClick={loadAuditLogs}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Aplicar Filtros
-              </button>
+            <div className="text-sm text-muted-foreground mt-2">
+              Los filtros se aplican automáticamente
             </div>
           </div>
         </CardContent>
@@ -5950,61 +5963,77 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Logs del Sistema</h3>
             <p className="text-sm text-muted-foreground">
-              {filteredLogs.length} registro{filteredLogs.length !== 1 ? "s" : ""}
+              {logsLoading ? "Cargando..." : `${auditLogs.length} registro${auditLogs.length !== 1 ? "s" : ""}`}
             </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Fecha</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Usuario</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Acción</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Módulo</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-700">Descripción</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {paginatedLogs.length > 0 ? (
-                  paginatedLogs.map((log) => (
-                    <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm">{log.created_at ? new Date(log.created_at).toLocaleString('es-ES') : '-'}</td>
-                      <td className="px-4 py-3 text-sm">{log.usuario?.nombre || 'Sistema'}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            log.accion === "Crear"
-                              ? "bg-green-100 text-green-800"
-                              : log.accion === "Actualizar"
-                                ? "bg-blue-100 text-blue-800"
-                                : log.accion === "Eliminar"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {log.accion}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{log.modulo}</td>
-                      <td className="px-4 py-3 text-sm">{log.descripcion}</td>
-                    </tr>
-                  ))
-                ) : (
+          {logsLoading ? (
+            <div className="py-8 text-center">
+              <div className="inline-block">
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">Cargando registros de auditoría...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                      No hay registros que coincidan con los filtros aplicados.
-                    </td>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">Fecha</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">Usuario</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">Acción</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">Módulo</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">Descripción</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white">
+                  {paginatedLogs.length > 0 ? (
+                    paginatedLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm">{log.created_at ? new Date(log.created_at).toLocaleString('es-ES') : '-'}</td>
+                        <td className="px-4 py-3 text-sm">{log.usuario?.nombre || 'Sistema'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              log.accion === "Crear"
+                                ? "bg-green-100 text-green-800"
+                                : log.accion === "Editar"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : log.accion === "Eliminar"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {log.accion}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{log.modulo}</td>
+                        <td className="px-4 py-3 text-sm">{log.descripcion}</td>
+                      </tr>
+                    ))
+                  ) : auditLogs.length === 0 && (logSearchTerm !== "" || logActionFilter !== "all") ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                        <p className="font-medium">No se encontraron registros</p>
+                        <p className="text-sm">Intenta cambiar los filtros de búsqueda o selecciona "Todas las acciones"</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                        No hay registros de auditoría
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {totalPagesLogs > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Página {logCurrentPage} de {totalPagesLogs} ({filteredLogs.length} registros)
-              </p>
+  <div className="mt-4 flex items-center justify-between">
+  <p className="text-sm text-gray-600">
+  Página {logCurrentPage} de {totalPagesLogs} ({auditLogs.length} registros)
+  </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setLogCurrentPage(Math.max(1, logCurrentPage - 1))}

@@ -133,7 +133,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await prisma.log.create({
       data: {
         usuario_id: session.id,
-        accion: 'Actualizar',
+        accion: 'Editar',
         modulo: 'Mantenimiento',
         descripcion: `Mantenimiento actualizado: ${mantenimiento.tipo} para equipo ${mantenimiento.equipo_id}`,
         datos: { mantenimiento_id: mantenimiento.id },

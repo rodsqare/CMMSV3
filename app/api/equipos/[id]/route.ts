@@ -137,7 +137,7 @@ export async function PUT(
     await prisma.log.create({
       data: {
         usuario_id: session.id,
-        accion: 'Actualizar',
+        accion: 'Editar',
         modulo: 'Equipos',
         descripcion: `Equipo actualizado: ${equipo.nombre}`,
         datos: { equipo_id: equipo.id },
