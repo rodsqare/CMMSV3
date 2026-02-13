@@ -6,13 +6,10 @@ import { startOfMonth, endOfMonth, subMonths } from 'date-fns'
 // GET - Reporte de órdenes de trabajo
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Report ordenes endpoint called")
     const session = await requireAuth()
-    console.log("[v0] Session:", session?.id)
     
     const { searchParams } = new URL(request.url)
     const meses = parseInt(searchParams.get('meses') || '3')
-    console.log("[v0] Meses:", meses)
     
     const fechaInicio = startOfMonth(subMonths(new Date(), meses - 1))
     const fechaFin = endOfMonth(new Date())
@@ -125,7 +122,6 @@ export async function GET(request: NextRequest) {
     }
     
     // Create audit log for report generation
-    console.log("[v0] Creating audit log for ordenes report - usuario_id:", session.id)
     try {
       await prisma.log.create({
         data: {
@@ -141,7 +137,6 @@ export async function GET(request: NextRequest) {
           },
         },
       })
-      console.log("[v0] Audit log created successfully")
     } catch (logError) {
       console.error("[v0] Error creating audit log:", logError)
     }

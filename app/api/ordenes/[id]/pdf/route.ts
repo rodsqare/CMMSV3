@@ -84,7 +84,6 @@ Generado el: ${new Date().toLocaleString('es-ES')}
     `.trim()
 
     // Create audit log for PDF export
-    console.log("[v0] Creating audit log for PDF - usuario_id:", session.id, "orden:", orden.numero_orden)
     try {
       await prisma.log.create({
         data: {
@@ -95,7 +94,6 @@ Generado el: ${new Date().toLocaleString('es-ES')}
           datos: { orden_id: ordenId, numero_orden: orden.numero_orden },
         },
       })
-      console.log("[v0] PDF audit log created successfully")
     } catch (logError) {
       console.error("[v0] Error creating PDF audit log:", logError)
     }

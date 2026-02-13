@@ -44,10 +44,10 @@ async function addHeader(doc: jsPDF, title: string) {
 
   try {
     // Load government logo (right side)
-    const govLogo = await loadImage("/gobierno.jpg")
+    const govLogo = await loadImage("/Gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, 10, 30, 30)
   } catch (error) {
-    console.log("[v0] Government logo not loaded, using placeholder")
+    console.log("[v0] Government logo not loaded")
     // Placeholder circle for government logo
     doc.setFillColor(0, 163, 224)
     doc.circle(pageWidth - 30, 25, 15, "F")
@@ -219,8 +219,43 @@ export async function generatePDF(options: {
   return doc
 }
 
-export function downloadPDF(doc: jsPDF, filename: string) {
+export async function downloadPDF(doc: jsPDF, filename: string) {
+  // Download the PDF
   doc.save(filename)
+  
+  // Log the export to audit logs
+  try {
+    // Extract module name from filename
+    let modulo = 'Reportes'
+    let descripcion = `PDF exportado: ${filename}`
+    
+    if (filename.includes('Orden') || filename.includes('Trabajo')) {
+      modulo = 'Órdenes de Trabajo'
+      descripcion = `PDF exportado de orden: ${filename}`
+    } else if (filename.includes('ficha') || filename.includes('tecnica')) {
+      modulo = 'Equipos'
+      descripcion = `Ficha técnica exportada: ${filename}`
+    } else if (filename.includes('Reporte')) {
+      modulo = 'Reportes'
+      descripcion = `Reporte exportado: ${filename}`
+    }
+    
+    // Call API to create audit log
+    await fetch('/api/audit-log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        accion: 'Exportar',
+        modulo,
+        descripcion,
+        datos: { filename, timestamp: new Date().toISOString() },
+      }),
+    })
+  } catch (error) {
+    // Silently fail audit logging to not disrupt user experience
+  }
 }
 
 export async function generateEquipmentTechnicalSheet(equipment: any) {
@@ -240,10 +275,10 @@ export async function generateEquipmentTechnicalSheet(equipment: any) {
   }
 
   try {
-    const govLogo = await loadImage("/gobierno.jpg")
+    const govLogo = await loadImage("/Gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, yPos, 30, 30)
   } catch (error) {
-    console.log("[v0] Government logo not loaded, using placeholder")
+    console.log("[v0] Government logo not loaded")
     doc.setFillColor(0, 163, 224)
     doc.circle(pageWidth - 30, yPos + 15, 15, "F")
   }
@@ -579,17 +614,12 @@ export async function generateWorkOrderPDF(orden: any, equipo?: any) {
   }
 
   try {
-    const govLogo = await loadImage("/gobierno.jpg")
+    const govLogo = await loadImage("/Gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 45, yPos, 30, 30)
   } catch (error) {
-    console.log("[v0] Government logo not loaded, creating blue circle")
+    console.log("[v0] Government logo not loaded")
     doc.setFillColor(0, 163, 224)
     doc.circle(pageWidth - 30, yPos + 15, 15, "F")
-    doc.setFontSize(20)
-    doc.setTextColor(255, 255, 255)
-    doc.setFont("helvetica", "bold")
-    doc.text("G", pageWidth - 30, yPos + 19, { align: "center" })
-    doc.setTextColor(0, 0, 0)
   }
 
   // Hospital name and details (center)
@@ -857,16 +887,11 @@ async function generateCronogramaPDF(data: { equipos: any[]; mantenimientos: any
   }
 
   try {
-    const govLogo = await loadImage("/public/Gobierno.jpg")
+    const govLogo = await loadImage("/Gobierno.jpg")
     doc.addImage(govLogo, "JPEG", pageWidth - 40, yPos, 25, 25)
   } catch (error) {
     doc.setFillColor(0, 163, 224)
     doc.circle(pageWidth - 27.5, yPos + 12.5, 12.5, "F")
-    doc.setFontSize(16)
-    doc.setTextColor(255, 255, 255)
-    doc.setFont("helvetica", "bold")
-    doc.text("G", pageWidth - 27.5, yPos + 16, { align: "center" })
-    doc.setTextColor(0, 0, 0)
   }
 
   // Title

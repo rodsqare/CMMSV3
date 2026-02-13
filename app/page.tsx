@@ -1578,11 +1578,11 @@ export default function DashboardPage() {
                         No se encontraron órdenes de trabajo
                       </td>
                     </tr>
-                  ) : (
-                    paginatedOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{order.numeroOrden}</td>
-                        <td className="px-4 py-3">{order.equipoNombre}</td>
+                ) : (
+                  paginatedOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-600 font-mono">{order.numeroOrden}</td>
+                      <td className="px-4 py-3">{order.equipoNombre}</td>
                         <td className="px-4 py-3">{order.tipo}</td>
                         <td className="px-4 py-3">{getPriorityBadge(order.prioridad)}</td>
                         <td className="px-4 py-3">
@@ -3524,7 +3524,7 @@ export default function DashboardPage() {
                       equipo, // Use .items from the memoized result
                     ) => (
                       <tr key={equipo.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm">{equipo.id}</td>
+                        <td className="py-3 px-4 text-sm text-gray-600 font-mono">{equipo.id}</td>
                         <td className="py-3 px-4 text-sm">{equipo.numeroSerie}</td>
                         <td className="py-3 px-4 text-sm">{equipo.codigoInstitucional || "-"}</td>
                         <td className="py-3 px-4 text-sm font-medium">{equipo.nombre}</td>
@@ -3975,7 +3975,7 @@ export default function DashboardPage() {
                   <tbody>
                     {paginatedUsers.map((user) => (
                       <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-3 text-sm">{user.id}</td>
+                        <td className="p-3 text-sm text-gray-600 font-mono">{user.id}</td>
                         <td className="p-3 text-sm font-medium">{user.nombre}</td>
                         <td className="p-3 text-sm text-gray-600">{user.email}</td>
                         <td className="p-3 text-sm">
@@ -5321,6 +5321,7 @@ export default function DashboardPage() {
               <table className="w-full">
                 <thead className="bg-gray-100">
                   <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-700">ID Mantenimiento</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-700">Nombre Equipo</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-700">Tipo</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-700">Frecuencia</th>
@@ -5333,6 +5334,7 @@ export default function DashboardPage() {
                 <tbody className="bg-white">
                   {maintenanceSchedules.map((m: any) => (
                     <tr key={m.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-2 text-sm text-gray-600 font-mono">{m.id}</td>
                       <td className="px-4 py-2 font-medium">{typeof m.equipo === 'object' ? m.equipo?.nombre : m.equipo || "N/A"}</td>
                       <td className="px-4 py-2">{m.tipo || "N/A"}</td>
                       <td className="px-4 py-2">{m.frecuencia || "N/A"}</td>
