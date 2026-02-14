@@ -21,6 +21,7 @@ import {
 } from "@/app/actions/usuarios"
 import { getHospitalLogo, setHospitalLogo as saveHospitalLogo } from "@/app/actions/configuracion"
 import { SmartMaintenanceCalendar } from "@/components/smart-maintenance-calendar"
+import { MonthlyMaintenanceCalendar } from "@/components/monthly-maintenance-calendar"
 import { AbortableModuleLoader, deduplicateRequest, clearCache } from "@/lib/utils/module-loader"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -5018,28 +5019,15 @@ export default function DashboardPage() {
 
   const renderCalendar = () => {
     return (
-      <SmartMaintenanceCalendar
+      <MonthlyMaintenanceCalendar
         maintenances={maintenanceSchedules}
         currentMonth={currentMonth}
         onMonthChange={setCurrentMonth}
-        onDateSelect={(date, suggestion) => {
+        onDateSelect={(date) => {
           const dateStr = date.toISOString().split('T')[0]
-          setMaintenanceForm({ ...maintenanceForm, proximaFecha: dateStr })
+          setSelectedMaintenance(null)
+          setMaintenanceForm({ proximaFecha: dateStr })
           setShowMaintenanceForm(true)
-          
-          // Show suggestion if available
-          if (suggestion && suggestion.isSuggested) {
-            toast({
-              title: "Excelente opción",
-              description: "Este día tiene disponibilidad. Completa el formulario para confirmar.",
-            })
-          } else if (suggestion?.isOverloaded) {
-            toast({
-              variant: "destructive",
-              title: "Día sobrecargado",
-              description: `Hay ${suggestion.maintenanceCount} mantenimientos programados. Considera otro día.`,
-            })
-          }
         }}
         onMaintenanceClick={(maintenance) => {
           setSelectedMaintenance(maintenance as any)
@@ -5203,26 +5191,29 @@ export default function DashboardPage() {
               Calendario
             </Button>
           </div>
-          <Button
-            onClick={() => {
-              setShowMaintenanceForm(true)
-              setSelectedMaintenance(null)
-              setMaintenanceForm({ resultado: "pendiente" })
-              if (users.length === 0) {
-                const loadUsers = async () => {
-                  try {
-                    const response = await fetchUsuarios({ per_page: 1000, estado: "activo" })
-                    setUsers(response.data)
-                  } catch (error) {
-                    console.error("Error loading users for maintenance form:", error)
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setShowMaintenanceForm(true)
+                setSelectedMaintenance(null)
+                setMaintenanceForm({ resultado: "pendiente" })
+                if (users.length === 0) {
+                  const loadUsers = async () => {
+                    try {
+                      const response = await fetchUsuarios({ per_page: 1000, estado: "activo" })
+                      setUsers(response.data)
+                    } catch (error) {
+                      console.error("Error loading users for maintenance form:", error)
+                    }
                   }
+                  loadUsers()
                 }
-                loadUsers()
-              }
-            }}
-          >
-            Nuevo Mantenimiento
-          </Button>
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo Mantenimiento
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -5650,6 +5641,23 @@ export default function DashboardPage() {
                 </Button>
                 <Button
                   variant="outline"
+                  className="text-blue-600 hover:bg-blue-50 border-blue-300"
+                  onClick={() => {
+                    setReportType("cronograma")
+                    setShowMaintenanceDetails(false)
+                    const reportElement = document.getElementById("reports-section")
+                    if (reportElement) {
+                      setTimeout(() => {
+                        reportElement.scrollIntoView({ behavior: "smooth" })
+                      }, 100)
+                    }
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Cronograma
+                </Button>
+                <Button
+                  variant="outline"
                   className="text-red-600 hover:bg-red-50 border-red-300 bg-transparent"
                   onClick={() => handleDeleteMaintenance(selectedMaintenance.id)}
                   disabled={maintenanceLoading}
@@ -5757,7 +5765,7 @@ export default function DashboardPage() {
   }
 
   const renderReportes = () => (
-    <div className="flex flex-col gap-6">
+    <div id="reports-section" className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div></div>
       </div>
