@@ -35,26 +35,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// GET - Contar notificaciones no leídas
-export async function HEAD(request: NextRequest) {
+// POST - Crear una nueva notificación (uso interno)
+export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth()
-    
-    const count = await prisma.notificacion.count({
-      where: {
-        usuario_id: session.id,
+    const body = await request.json()
+    const { usuario_id, tipo, titulo, mensaje, datos } = body
+
+    if (!usuario_id || !titulo || !mensaje) {
+      return NextResponse.json(
+        { error: 'Campos requeridos faltantes' },
+        { status: 400 }
+      )
+    }
+
+    const notificacion = await prisma.notificacion.create({
+      data: {
+        usuario_id,
+        tipo: tipo || 'info',
+        titulo,
+        mensaje,
+        datos,
         leida: false,
       },
     })
-    
-    return new NextResponse(null, {
-      status: 200,
-      headers: {
-        'X-Unread-Count': count.toString(),
-      },
-    })
+
+    return NextResponse.json(notificacion, { status: 201 })
   } catch (error: any) {
-    console.error('[v0] Error counting notificaciones:', error)
-    return new NextResponse(null, { status: 500 })
+    console.error('[v0] Error creating notificacion:', error)
+    return NextResponse.json(
+      { error: error.message || 'Error al crear notificación' },
+      { status: 500 }
+    )
   }
 }

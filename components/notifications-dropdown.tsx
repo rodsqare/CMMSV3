@@ -12,34 +12,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { getNotifications, type Notification } from "@/app/actions/notificaciones"
+import useSWR from "swr"
+
+export interface Notification {
+  id: number
+  usuario_id: number
+  tipo: string
+  titulo: string
+  mensaje: string
+  leida: boolean
+  fecha_envio: string
+  datos?: any
+  created_at: string
+  updated_at: string
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export function NotificationsDropdown() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data = [], error, isLoading } = useSWR<Notification[]>('/api/notificaciones', fetcher, {
+    refreshInterval: 15000,
+  })
 
-  useEffect(() => {
-    const loadNotifications = async () => {
-      try {
-        setLoading(true)
-        const data = await getNotifications()
-        console.log("[v0] Loaded notifications:", data)
-        // Ensure data is always an array
-        setNotifications(Array.isArray(data) ? data : [])
-      } catch (error) {
-        console.error("[v0] Failed to load notifications:", error)
-        setNotifications([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadNotifications()
-    const interval = setInterval(loadNotifications, 15000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const unreadCount = notifications.filter((n) => !n.leida).length
+  const unreadCount = data?.filter((n) => !n.leida).length || 0
 
   return (
     <DropdownMenu>
@@ -60,12 +55,14 @@ export function NotificationsDropdown() {
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {loading ? (
+        {isLoading ? (
           <div className="py-6 text-center text-sm text-muted-foreground">Cargando...</div>
-        ) : notifications.length === 0 ? (
+        ) : error ? (
+          <div className="py-6 text-center text-sm text-red-500">Error al cargar notificaciones</div>
+        ) : data.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">No hay notificaciones</div>
         ) : (
-          notifications.slice(0, 5).map((notification) => (
+          data.slice(0, 5).map((notification) => (
             <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-pointer">
               <div className="flex items-start gap-2 w-full">
                 {!notification.leida && <div className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
@@ -73,7 +70,7 @@ export function NotificationsDropdown() {
                   <p className="text-sm font-medium leading-none">{notification.titulo}</p>
                   <p className="text-sm text-muted-foreground">{notification.mensaje}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(notification.fecha).toLocaleDateString()}
+                    {new Date(notification.fecha_envio).toLocaleDateString()}
                   </p>
                 </div>
               </div>

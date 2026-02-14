@@ -2,54 +2,43 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
-// PUT - Marcar notificación como leída
-export async function PUT(
+// DELETE - Eliminar una notificación
+export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth()
     const { id } = await params
-    
-    // Verificar que la notificación pertenece al usuario
+
     const notificacion = await prisma.notificacion.findUnique({
       where: { id: parseInt(id) },
     })
-    
+
     if (!notificacion) {
       return NextResponse.json(
         { error: 'Notificación no encontrada' },
         { status: 404 }
       )
     }
-    
+
     if (notificacion.usuario_id !== session.id) {
       return NextResponse.json(
         { error: 'No autorizado' },
         { status: 403 }
       )
     }
-    
-    const actualizada = await prisma.notificacion.update({
+
+    await prisma.notificacion.delete({
       where: { id: parseInt(id) },
-      data: { leida: true },
     })
-    
-    return NextResponse.json(actualizada)
+
+    return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('[v0] Error marking notificacion:', error)
+    console.error('[v0] Error deleting notificacion:', error)
     return NextResponse.json(
-      { error: error.message || 'Error al marcar notificación' },
+      { error: error.message || 'Error al eliminar notificación' },
       { status: error.message === 'No autorizado' ? 401 : 500 }
     )
   }
 }
-
-// PATCH - Alternativa para marcar como leída
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return PUT(request, { params })
-}
-
