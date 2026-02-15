@@ -1244,6 +1244,8 @@ export default function DashboardPage() {
         })
         setIsDeleteDialogOpen(false)
         setSelectedOrderToDelete(null)
+        // Clear cache before reloading to ensure fresh data
+        clearCache()
         await loadWorkOrders()
       } else {
         toast({
@@ -6560,7 +6562,7 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle>Confirmar Eliminación</DialogTitle>
             <DialogDescription>
-              ¿Está seguro de que desea eliminar este usuario? Esta acción no se puede deshacer.
+              ¿Est�� seguro de que desea eliminar este usuario? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
