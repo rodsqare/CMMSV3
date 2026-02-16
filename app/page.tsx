@@ -2746,12 +2746,9 @@ export default function DashboardPage() {
 
     try {
       setEquipmentLoading(true)
-      const token = localStorage.getItem("authToken")
       const userId = localStorage.getItem("userId")
-
-      if (!token) {
-        throw new Error("No authentication token found. Please log in again.")
-      }
+      const authToken = localStorage.getItem("authToken")
+      console.log("[v0] handleFileUpload - userId:", userId, "hasToken:", !!authToken)
 
       // Use the lib/api/documentos uploadDocumento function
       const { uploadDocumento } = await import("@/lib/api/documentos")
@@ -2759,7 +2756,6 @@ export default function DashboardPage() {
         selectedEquipment.id,
         file,
         userId ? Number.parseInt(userId) : 1, // Default to 1 if userId is not found, though this should be handled by authentication
-        token,
       )
 
       // Fetch updated equipment details to refresh the list of documents

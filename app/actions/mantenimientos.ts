@@ -295,3 +295,86 @@ export async function checkUpcomingMaintenances() {
     return { upcoming: [], count: 0 }
   }
 }
+
+export async function completeMantenimiento(
+  id: number,
+  data: {
+    tiempo_real?: number
+    costo?: number
+    observaciones?: string
+    tareas_realizadas?: any
+    estado_equipo?: string
+  },
+  usuarioId: number
+) {
+  console.log("[v0] Action: Completing maintenance", id, data)
+
+  try {
+    // Get the maintenance record
+    const mantenimiento = await prisma.mantenimiento.findUnique({
+      where: { id },
+      include: { equipo: true },
+    })
+
+    if (!mantenimiento) {
+      return { success: false, error: "Mantenimiento no encontrado" }
+    }
+
+    // Create maintenance realization record
+    const realizacion = await prisma.mantenimientoRealizado.create({
+      data: {
+        mantenimiento_id: mantenimiento.id,
+        equipo_id: mantenimiento.equipo_id,
+        realizado_por: usuarioId,
+        tiempo_real: data.tiempo_real,
+        costo: data.costo ? parseFloat(data.costo.toString()) : null,
+        observaciones: data.observaciones,
+        tareas_realizadas: data.tareas_realizadas,
+        estado_equipo: data.estado_equipo,
+      },
+    })
+
+    // Calculate next scheduled date
+    const proximaFecha = new Date()
+    proximaFecha.setDate(proximaFecha.getDate() + mantenimiento.frecuencia_dias)
+
+    // Update maintenance
+    await prisma.mantenimiento.update({
+      where: { id: mantenimiento.id },
+      data: {
+        ultima_realizacion: new Date(),
+        proxima_programada: proximaFecha,
+      },
+    })
+
+    // Update equipment
+    await prisma.equipo.update({
+      where: { id: mantenimiento.equipo_id },
+      data: {
+        ultima_mantencion: new Date(),
+        proxima_mantencion: proximaFecha,
+        estado: data.estado_equipo || mantenimiento.equipo.estado,
+      },
+    })
+
+    // Log the action
+    await createAuditLog({
+      accion: 'COMPLETAR',
+      modulo: 'MANTENIMIENTOS',
+      descripcion: `Mantenimiento ${mantenimiento.tipo} completado para equipo ${mantenimiento.equipo.nombre}`,
+      datos: {
+        mantenimientoId: id,
+        equipoId: mantenimiento.equipo_id,
+        realizacionId: realizacion.id,
+      },
+    }).catch(err => console.error("[v0] Error logging maintenance completion:", err))
+
+    console.log("[v0] Action: Maintenance completed successfully", realizacion.id)
+
+    return { success: true, data: realizacion }
+  } catch (error: any) {
+    console.error("[v0] Action: Error completing maintenance", error)
+    const errorMessage = error.message || "Error al completar el mantenimiento"
+    return { success: false, error: errorMessage }
+  }
+}

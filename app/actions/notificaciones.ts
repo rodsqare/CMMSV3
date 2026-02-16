@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 
 export interface Notification {
   id: number
@@ -18,7 +18,14 @@ export interface Notification {
 
 export async function getNotificationsForUser(): Promise<Notification[]> {
   try {
-    const session = await requireAuth()
+    console.log('[v0] getNotificationsForUser - attempting to get session')
+    const session = await getSession()
+    console.log('[v0] getNotificationsForUser - session:', !!session, session?.email)
+    
+    if (!session) {
+      console.log('[v0] getNotificationsForUser - no session found')
+      return []
+    }
     
     const notifications = await prisma.notificacion.findMany({
       where: { usuario_id: session.id },
@@ -26,6 +33,7 @@ export async function getNotificationsForUser(): Promise<Notification[]> {
       take: 50,
     })
     
+    console.log('[v0] getNotificationsForUser - found', notifications.length, 'notifications')
     return notifications as Notification[]
   } catch (error) {
     console.error("[v0] Error fetching notifications:", error)
@@ -35,7 +43,11 @@ export async function getNotificationsForUser(): Promise<Notification[]> {
 
 export async function markNotificationAsRead(id: number): Promise<{ success: boolean }> {
   try {
-    const session = await requireAuth()
+    const session = await getSession()
+    
+    if (!session) {
+      return { success: false }
+    }
     
     const notification = await prisma.notificacion.findUnique({
       where: { id },
@@ -59,7 +71,11 @@ export async function markNotificationAsRead(id: number): Promise<{ success: boo
 
 export async function markAllNotificationsAsRead(): Promise<{ success: boolean }> {
   try {
-    const session = await requireAuth()
+    const session = await getSession()
+    
+    if (!session) {
+      return { success: false }
+    }
     
     await prisma.notificacion.updateMany({
       where: { usuario_id: session.id, leida: false },
@@ -75,7 +91,11 @@ export async function markAllNotificationsAsRead(): Promise<{ success: boolean }
 
 export async function deleteNotificationAction(id: number): Promise<{ success: boolean }> {
   try {
-    const session = await requireAuth()
+    const session = await getSession()
+    
+    if (!session) {
+      return { success: false }
+    }
     
     const notification = await prisma.notificacion.findUnique({
       where: { id },
@@ -98,7 +118,11 @@ export async function deleteNotificationAction(id: number): Promise<{ success: b
 
 export async function getUnreadCount(): Promise<number> {
   try {
-    const session = await requireAuth()
+    const session = await getSession()
+    
+    if (!session) {
+      return 0
+    }
     
     const count = await prisma.notificacion.count({
       where: { usuario_id: session.id, leida: false },

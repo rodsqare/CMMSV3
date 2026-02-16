@@ -33,14 +33,10 @@ export async function uploadDocumento(
   equipoId: number,
   file: File,
   subidoPorId: number,
-  token: string,
+  token?: string,
 ): Promise<Documento> {
-  console.log('[v0] uploadDocumento - token present:', !!token, 'token length:', token?.length)
+  console.log('[v0] uploadDocumento - starting upload for equipment:', equipoId)
   
-  if (!token) {
-    throw new Error("No authentication token found. Please log in again.")
-  }
-
   const uploadUrl = `/api/equipos/${equipoId}/documentos`
   console.log('[v0] uploadDocumento - uploading to:', uploadUrl)
 
@@ -48,14 +44,29 @@ export async function uploadDocumento(
   formData.append("archivo", file)
   formData.append("subido_por_id", subidoPorId.toString())
 
-  console.log('[v0] uploadDocumento - making request with bearer token')
-  // Fetch with credentials (incluye cookies) y Authorization header
+  // Get token from localStorage (same as apiClient does)
+  let authToken = null
+  if (typeof window !== 'undefined') {
+    authToken = localStorage.getItem("authToken")
+    console.log('[v0] uploadDocumento - got token from localStorage:', !!authToken)
+  }
+
+  console.log('[v0] uploadDocumento - making request with formData')
+  const headers: HeadersInit = {
+    'X-User-ID': subidoPorId.toString(),
+  }
+  
+  // Add Bearer token if we have one
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`
+    console.log('[v0] uploadDocumento - added Bearer token')
+  }
+
+  // Fetch with credentials: cookies will be sent automatically
   const response = await fetch(uploadUrl, {
     method: "POST",
-    credentials: "include", // Incluye cookies HTTP-only
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
+    headers,
     body: formData,
   })
 
@@ -73,7 +84,9 @@ export async function uploadDocumento(
   }
 
   const result = await response.json()
-  return result.data
+  const documento = result.data || result
+  console.log('[v0] uploadDocumento - document created successfully:', documento.id)
+  return documento
 }
 
 export async function downloadDocumento(documentoId: number): Promise<Blob> {

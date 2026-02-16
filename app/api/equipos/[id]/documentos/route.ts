@@ -57,6 +57,7 @@ export async function POST(
     })
 
     if (!equipo) {
+      console.log('[v0] POST /documentos - Equipment not found:', equipoId)
       return NextResponse.json(
         { error: 'Equipo no encontrado' },
         { status: 404 }
@@ -68,7 +69,12 @@ export async function POST(
     const archivo = formData.get('archivo') as File
     const subidoPorId = formData.get('subido_por_id') as string
 
+    console.log('[v0] POST /documentos - FormData received')
+    console.log('[v0] POST /documentos - archivo:', archivo ? `${archivo.name} (${archivo.size} bytes)` : 'NOT PROVIDED')
+    console.log('[v0] POST /documentos - subidoPorId:', subidoPorId)
+
     if (!archivo) {
+      console.log('[v0] POST /documentos - Error: No file provided')
       return NextResponse.json(
         { error: 'No se proporciono archivo' },
         { status: 400 }
@@ -76,6 +82,7 @@ export async function POST(
     }
 
     if (!subidoPorId) {
+      console.log('[v0] POST /documentos - Error: No subidoPorId provided')
       return NextResponse.json(
         { error: 'No se proporciono el ID del usuario que sube' },
         { status: 400 }
@@ -85,6 +92,7 @@ export async function POST(
     // Validar que el archivo no sea muy grande (máximo 50MB)
     const maxSize = 50 * 1024 * 1024
     if (archivo.size > maxSize) {
+      console.log('[v0] POST /documentos - File too large:', archivo.size)
       return NextResponse.json(
         { error: 'El archivo es demasiado grande. Máximo 50MB' },
         { status: 400 }
@@ -111,6 +119,8 @@ export async function POST(
         },
       },
     })
+
+    console.log('[v0] POST /documentos - Document created successfully:', documento.id)
 
     // Crear log
     await prisma.log.create({

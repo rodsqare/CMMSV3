@@ -190,3 +190,24 @@ export async function checkUpcomingMaintenances(): Promise<{
     }
   }
 }
+
+export async function completeMantenimiento(
+  id: number,
+  data: {
+    tiempo_real?: number
+    costo?: number
+    observaciones?: string
+    tareas_realizadas?: any
+    estado_equipo?: string
+  }
+): Promise<any> {
+  const client = isServer ? serverApiClient : apiClient
+
+  try {
+    const response = await client.post<any>(`/mantenimientos/${id}/realizar`, data)
+    return response.data || response
+  } catch (error) {
+    console.error("[v0] Error completing maintenance:", error)
+    throw error
+  }
+}
