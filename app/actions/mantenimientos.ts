@@ -289,10 +289,14 @@ export async function checkUpcomingMaintenances() {
     })
 
     console.log("[v0] Upcoming maintenances checked:", { count: upcoming.length })
-    return { upcoming, count: upcoming.length }
+    return { 
+      upcoming, 
+      count: upcoming.length,
+      notificaciones_creadas: upcoming.length // For compatibility with notification generation
+    }
   } catch (error) {
     console.error("[v0] Error checking upcoming maintenances:", error)
-    return { upcoming: [], count: 0 }
+    return { upcoming: [], count: 0, notificaciones_creadas: 0 }
   }
 }
 

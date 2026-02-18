@@ -888,10 +888,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const checkMaintenances = async () => {
       try {
+        // Generate automatic maintenance notifications
+        const { generateMaintenanceNotifications } = await import("@/app/actions/notificaciones")
+        await generateMaintenanceNotifications()
+        
         const result = await checkUpcomingMaintenances()
         if (result && result.notificaciones_creadas > 0) {
           loadNotifications()
         }
+        
+        // Reload notifications after generation
+        await loadNotifications()
       } catch (error) {
         console.error("[v0] Error checking upcoming maintenances:", error)
       }
@@ -6327,16 +6334,8 @@ export default function DashboardPage() {
 
   const loadNotifications = async () => {
     try {
-      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
-      if (!userId) {
-        console.log("[v0] No user ID available for loading notifications")
-        setNotifications([])
-        setUnreadCount(0)
-        return
-      }
-      
       const { getNotificationsForUser } = await import("@/app/actions/notificaciones")
-      const notifs = await getNotificationsForUser(userId)
+      const notifs = await getNotificationsForUser()
       setNotifications(notifs)
       setUnreadCount(notifs.filter((n) => !n.leida).length)
       console.log("[v0] Loaded notifications:", notifs.length)
@@ -6349,29 +6348,23 @@ export default function DashboardPage() {
 
   const handleMarkNotificationAsRead = useCallback(async (id: number) => {
     try {
-      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
-      if (!userId) return
-      
       const { markNotificationAsRead } = await import("@/app/actions/notificaciones")
-      await markNotificationAsRead(id, userId)
+      await markNotificationAsRead(id)
       await loadNotifications()
     } catch (error) {
       console.error("[v0] Error marking notification as read:", error)
     }
-  }, [currentUser?.id])
+  }, [])
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
-      const userId = currentUser?.id || parseInt(localStorage.getItem("userId") || "0", 10)
-      if (!userId) return
-      
       const { markAllNotificationsAsRead } = await import("@/app/actions/notificaciones")
-      await markAllNotificationsAsRead(userId)
+      await markAllNotificationsAsRead()
       await loadNotifications()
     } catch (error) {
       console.error("[v0] Error marking all notifications as read:", error)
     }
-  }, [currentUser?.id])
+  }, [])
 
   // ADDED: Logo change handler
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
