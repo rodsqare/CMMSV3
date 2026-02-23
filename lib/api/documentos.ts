@@ -44,21 +44,12 @@ export async function uploadDocumento(
   formData.append("archivo", file)
   formData.append("subido_por_id", subidoPorId.toString())
 
-  // Get token from localStorage (same as apiClient does)
-  let authToken = null
-  if (typeof window !== 'undefined') {
-    authToken = localStorage.getItem("authToken")
-    console.log('[v0] uploadDocumento - got token from localStorage:', !!authToken)
-  }
-
   console.log('[v0] uploadDocumento - making request with formData')
-  const headers: HeadersInit = {
-    'X-User-ID': subidoPorId.toString(),
-  }
+  const headers: HeadersInit = {}
   
-  // Add Bearer token if we have one
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`
+  // Add Bearer token if provided
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
     console.log('[v0] uploadDocumento - added Bearer token')
   }
 

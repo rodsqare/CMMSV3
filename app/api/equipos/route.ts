@@ -55,18 +55,18 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear equipo
 const createEquipoSchema = z.object({
-  codigo: z.string().min(1, 'Código requerido'),
-  nombre: z.string().min(1, 'Nombre requerido'),
+  codigo: z.string().regex(/^\d{12}$/, 'El código institucional debe tener exactamente 12 dígitos'),
+  nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   tipo: z.string().min(1, 'Tipo requerido'),
   marca: z.string().optional(),
   modelo: z.string().optional(),
-  numero_serie: z.string().optional(),
+  numero_serie: z.string().min(3, 'El número de serie debe tener al menos 3 caracteres'),
   ubicacion: z.string().optional(),
   fecha_adquisicion: z.string().optional(),
   vida_util_anos: z.number().optional(),
   valor_adquisicion: z.number().optional(),
-  estado: z.string().min(1, 'Estado requerido'),
-  criticidad: z.string().min(1, 'Criticidad requerida'),
+  estado: z.string().min(1, 'El estado del equipo es obligatorio'),
+  criticidad: z.string().min(1, 'El nivel de riesgo es obligatorio'),
   descripcion: z.string().optional(),
   especificaciones: z.any().optional(),
   horas_operacion: z.number().optional(),
@@ -88,13 +88,25 @@ export async function POST(request: NextRequest) {
     const data = validation.data
     
     // Verificar que el código no exista
-    const existente = await prisma.equipo.findUnique({
+    const existenteCodigo = await prisma.equipo.findUnique({
       where: { codigo: data.codigo },
     })
     
-    if (existente) {
+    if (existenteCodigo) {
       return NextResponse.json(
-        { error: 'Ya existe un equipo con ese código' },
+        { error: 'Ya existe un equipo con ese código institucional' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el número de serie no exista
+    const existenteSerie = await prisma.equipo.findFirst({
+      where: { numero_serie: data.numero_serie },
+    })
+    
+    if (existenteSerie) {
+      return NextResponse.json(
+        { error: 'Ya existe un equipo con ese número de serie' },
         { status: 400 }
       )
     }

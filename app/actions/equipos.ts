@@ -135,6 +135,48 @@ export async function saveEquipo(data: Equipo, userId?: string): Promise<{ succe
   try {
     console.log(`[v0] Server Action: saveEquipo called with userId ${userId}`, data)
 
+    // Validaciones de backend
+    if (!data.codigo || !/^\d{12}$/.test(data.codigo)) {
+      return { success: false, error: "El código institucional debe tener exactamente 12 dígitos" }
+    }
+
+    if (!data.nombre || data.nombre.trim().length < 3) {
+      return { success: false, error: "El nombre debe tener al menos 3 caracteres" }
+    }
+
+    if (!data.numero_serie || data.numero_serie.trim().length < 3) {
+      return { success: false, error: "El número de serie es obligatorio y debe tener al menos 3 caracteres" }
+    }
+
+    if (!data.estado) {
+      return { success: false, error: "El estado del equipo es obligatorio" }
+    }
+
+    if (!data.criticidad) {
+      return { success: false, error: "El nivel de riesgo es obligatorio" }
+    }
+
+    // Verificar duplicados
+    let equipoExistente = await prisma.equipo.findUnique({
+      where: { codigo: data.codigo },
+    })
+
+    if (equipoExistente && equipoExistente.id !== data.id) {
+      return { success: false, error: "Ya existe un equipo con este código institucional" }
+    }
+
+    // Verificar duplicado de número de serie
+    equipoExistente = await prisma.equipo.findFirst({
+      where: { 
+        numero_serie: data.numero_serie,
+        NOT: { id: data.id || 0 }
+      },
+    })
+
+    if (equipoExistente) {
+      return { success: false, error: "Ya existe un equipo con este número de serie" }
+    }
+
     let equipo: any
     if (data.id && data.id > 0) {
       equipo = await prisma.equipo.update({

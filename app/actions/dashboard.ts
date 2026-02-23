@@ -1,6 +1,6 @@
 "use server"
 
-import mysql from 'mysql2/promise'
+import { prisma } from '@/lib/prisma'
 
 export type DashboardStats = {
   usuariosCount: number
@@ -32,70 +32,55 @@ const mockDashboardStats: DashboardStats = {
   })(),
 }
 
-async function getDbConnection() {
-  const databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL or MYSQL_URL not configured')
-  }
-  
-  const pool = mysql.createPool({
-    uri: databaseUrl,
-    waitForConnections: true,
-    connectionLimit: 5,
-    queueLimit: 0,
-  })
-  
-  return pool
-}
-
 async function fetchDashboardStatsFromDatabase(): Promise<DashboardStats> {
   try {
-    const pool = await getDbConnection()
+    console.log("[v0] Dashboard - fetching stats from database using Prisma...")
     
-    // Fetch all data in parallel
-    const [usuariosResult, equiposResult, mantenimientosResult, ordenesResult, equiposPorMarcaResult] = await Promise.all([
-      pool.execute('SELECT COUNT(*) as count FROM usuarios'),
-      pool.execute('SELECT COUNT(*) as count FROM equipos'),
-      pool.execute('SELECT COUNT(*) as count FROM mantenimientos'),
-      pool.execute('SELECT COUNT(*) as count FROM ordenes_trabajo'),
-      pool.execute(`
-        SELECT marca as nombre, COUNT(*) as cantidad 
-        FROM equipos 
-        WHERE marca IS NOT NULL AND marca != ''
-        GROUP BY marca 
-        ORDER BY cantidad DESC 
-        LIMIT 10
-      `),
+    // Fetch all data in parallel using Prisma
+    const [usuariosCount, equiposCount, mantenimientosCount, ordenesCount, equiposPorMarca, mantenimientosPorMes] = await Promise.all([
+      prisma.usuario.count(),
+      prisma.equipo.count(),
+      prisma.mantenimiento.count(),
+      prisma.ordenTrabajo.count(),
+      prisma.equipo.groupBy({
+        by: ['marca'],
+        _count: true,
+        where: {
+          marca: {
+            not: null,
+            not: '',
+          },
+        },
+        orderBy: {
+          _count: {
+            marca: 'desc',
+          },
+        },
+        take: 10,
+      }),
+      // Get maintenance by month (last 6 months)
+      prisma.mantenimiento.findMany({
+        where: {
+          proxima_programada: {
+            gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000),
+          },
+        },
+        select: {
+          proxima_programada: true,
+        },
+      }),
     ])
-    
-    // Get maintenance by month (last 6 months)
-    const [mantenimientosPorMesResult] = await pool.execute(`
-      SELECT 
-        DATE_FORMAT(proxima_programada, '%Y-%m') as mes,
-        COUNT(*) as cantidad
-      FROM mantenimientos
-      WHERE proxima_programada >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-      GROUP BY DATE_FORMAT(proxima_programada, '%Y-%m')
-      ORDER BY mes ASC
-    `)
-    
-    await pool.end()
-    
-    // Process results
-    const usuariosCount = (usuariosResult[0] as any[])[0].count
-    const equiposCount = (equiposResult[0] as any[])[0].count
-    const mantenimientosCount = (mantenimientosResult[0] as any[])[0].count
-    const ordenesCount = (ordenesResult[0] as any[])[0].count
-    
-    const equiposPorFabricante = (equiposPorMarcaResult[0] as any[]).map((row: any) => ({
-      nombre: row.nombre || 'Desconocido',
-      cantidad: row.cantidad,
+
+    // Process equipment by brand
+    const equiposPorFabricante = equiposPorMarca.map((row: any) => ({
+      nombre: row.marca || 'Desconocido',
+      cantidad: row._count,
     }))
-    
+
     // Build maintenance by month with all 6 months
     const mesesNombres = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
     const mantenimientosPorMesMap = new Map<string, number>()
-    
+
     // Initialize last 6 months
     const today = new Date()
     for (let i = 5; i >= 0; i--) {
@@ -103,32 +88,43 @@ async function fetchDashboardStatsFromDatabase(): Promise<DashboardStats> {
       const mesKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       mantenimientosPorMesMap.set(mesKey, 0)
     }
-    
-    // Fill in data from query
-    (mantenimientosPorMesResult as any[]).forEach((row: any) => {
-      mantenimientosPorMesMap.set(row.mes, row.cantidad)
+
+    // Count maintenance by month
+    mantenimientosPorMes.forEach((maint: any) => {
+      const date = new Date(maint.proxima_programada)
+      const mesKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      mantenimientosPorMesMap.set(mesKey, (mantenimientosPorMesMap.get(mesKey) || 0) + 1)
     })
-    
+
     // Convert to array
-    const mantenimientosPorMes: Array<{ mes: string; cantidad: number }> = []
+    const mantenimientosPorMesArray: Array<{ mes: string; cantidad: number }> = []
     for (let i = 5; i >= 0; i--) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1)
       const mesKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const mesNombre = mesesNombres[date.getMonth()]
-      mantenimientosPorMes.push({
+      mantenimientosPorMesArray.push({
         mes: mesNombre,
         cantidad: mantenimientosPorMesMap.get(mesKey) || 0,
       })
     }
-    
-    return {
+
+    const result = {
       usuariosCount,
       equiposCount,
       mantenimientosCount,
       ordenesCount,
       equiposPorFabricante,
-      mantenimientosPorMes,
+      mantenimientosPorMes: mantenimientosPorMesArray,
     }
+
+    console.log("[v0] Dashboard - stats fetched successfully:", {
+      usuariosCount,
+      equiposCount,
+      mantenimientosCount,
+      ordenesCount,
+    })
+
+    return result
   } catch (error) {
     console.error("[v0] Error fetching dashboard stats from database:", error)
     if (error instanceof Error) {
@@ -140,9 +136,9 @@ async function fetchDashboardStatsFromDatabase(): Promise<DashboardStats> {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   try {
-    console.log("[v0] Dashboard - fetching stats from database...")
+    console.log("[v0] Dashboard - fetching stats...")
     const stats = await fetchDashboardStatsFromDatabase()
-    console.log("[v0] Dashboard - stats received:", stats)
+    console.log("[v0] Dashboard - stats received successfully")
     return stats
   } catch (error) {
     console.error("[v0] Error fetching dashboard stats:", error)

@@ -62,11 +62,23 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   }, [open, equipment])
 
   // Validate a single field
-  const validateField = (name: string, value: any): string => {
+  const validateField = async (name: string, value: any, equipoId?: number): Promise<string> => {
     switch (name) {
       case "codigo_institucional":
         if (!value) return "El código institucional es obligatorio"
         if (!/^\d{12}$/.test(value)) return "El código institucional debe tener exactamente 12 dígitos"
+        
+        // Validar que no sea duplicado (excepto si es el mismo equipo en edición)
+        try {
+          const response = await fetch(`/api/equipos?search=${value}`)
+          const equipos = await response.json()
+          if (Array.isArray(equipos) && equipos.length > 0) {
+            const duplicado = equipos.find((e: any) => e.codigo === value && e.id !== equipoId)
+            if (duplicado) return "Ya existe un equipo con este código institucional"
+          }
+        } catch (error) {
+          console.log("[v0] Error checking codigo_institucional uniqueness:", error)
+        }
         return ""
 
       case "nombre_equipo":
@@ -87,6 +99,18 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       case "numero_serie":
         if (!value || value.trim().length < 3) return "El número de serie debe tener al menos 3 caracteres"
         if (value.length > 100) return "El número de serie no puede exceder 100 caracteres"
+        
+        // Validar que no sea duplicado (excepto si es el mismo equipo en edición)
+        try {
+          const response = await fetch(`/api/equipos?search=${value}`)
+          const equipos = await response.json()
+          if (Array.isArray(equipos) && equipos.length > 0) {
+            const duplicado = equipos.find((e: any) => e.numero_serie === value && e.id !== equipoId)
+            if (duplicado) return "Ya existe un equipo con este número de serie"
+          }
+        } catch (error) {
+          console.log("[v0] Error checking numero_serie uniqueness:", error)
+        }
         return ""
 
       case "ubicacion":
@@ -99,8 +123,16 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         if (value.length > 100) return "El servicio no puede exceder 100 caracteres"
         return ""
 
+      case "estado":
+        if (!value) return "El estado del equipo es obligatorio"
+        return ""
+
+      case "criticidad":
+        if (!value) return "El nivel de riesgo es obligatorio"
+        return ""
+
       case "proveedor_telefono":
-        if (value && !/^[\d\s\-+$$$$]+$/.test(value))
+        if (value && !/^[\d\s\-+()]+$/.test(value))
           return "El teléfono solo puede contener números y caracteres: + - ( ) espacios"
         return ""
 
@@ -153,7 +185,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   }
 
   // Validate all required fields
-  const validateForm = (): boolean => {
+  const validateForm = async (): Promise<boolean> => {
     const newErrors: ValidationErrors = {}
     const requiredFields = [
       "codigo_institucional",
@@ -163,25 +195,27 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       "numero_serie",
       "ubicacion",
       "servicio",
+      "estado",
+      "criticidad",
     ]
 
     // Validate required fields
-    requiredFields.forEach((field) => {
-      const error = validateField(field, formData[field as keyof Equipo])
+    for (const field of requiredFields) {
+      const error = await validateField(field, formData[field as keyof Equipo], equipment?.id)
       if (error) {
         newErrors[field] = error
       }
-    })
+    }
 
     // Validate optional fields that have values
-    Object.keys(formData).forEach((key) => {
+    for (const key of Object.keys(formData)) {
       if (!requiredFields.includes(key) && formData[key as keyof Equipo]) {
-        const error = validateField(key, formData[key as keyof Equipo])
+        const error = await validateField(key, formData[key as keyof Equipo], equipment?.id)
         if (error) {
           newErrors[key] = error
         }
       }
-    })
+    }
 
     // Date logic validations
     if (formData.fecha_instalacion && formData.fecha_adquisicion) {
@@ -222,7 +256,8 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     console.log("[v0] Form submission started")
     setGeneralError("")
 
-    if (!validateForm()) {
+    const isValid = await validateForm()
+    if (!isValid) {
       console.log("[v0] Validation failed, errors:", errors)
       scrollToFirstError()
       return
@@ -243,6 +278,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         // Parse backend validation errors
         if (result.error && result.error.includes("código institucional")) {
           setErrors({ codigo_institucional: result.error })
+          scrollToFirstError()
+        } else if (result.error && result.error.includes("número de serie")) {
+          setErrors({ numero_serie: result.error })
           scrollToFirstError()
         } else {
           setGeneralError(result.error || "Error al guardar el equipo")
@@ -386,11 +424,13 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
           <div className="grid grid-cols-2 gap-4">
             {/* Estado */}
-            <div>
-              <Label htmlFor="estado">Estado</Label>
-              <Select value={formData.estado || "operativo"} onValueChange={(value) => handleChange("estado", value)}>
-                <SelectTrigger id="estado">
-                  <SelectValue />
+            <div ref={(el) => { fieldRefs.current.estado = el }}>
+              <Label htmlFor="estado">
+                Estado <span className="text-red-500">*</span>
+              </Label>
+              <Select value={formData.estado || ""} onValueChange={(value) => handleChange("estado", value)}>
+                <SelectTrigger id="estado" className={errors.estado ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Seleccione un estado" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="operativo">Operativo</SelectItem>
@@ -400,31 +440,35 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
                   <SelectItem value="nuevo">Nuevo</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.estado && <p className="text-sm text-red-500 mt-1">{errors.estado}</p>}
             </div>
 
-            {/* Nivel de Riesgo */}
-            <div>
-              <Label htmlFor="nivel_riesgo">Nivel de Riesgo</Label>
+            {/* Nivel de Riesgo / Criticidad */}
+            <div ref={(el) => { fieldRefs.current.criticidad = el }}>
+              <Label htmlFor="criticidad">
+                Nivel de Riesgo <span className="text-red-500">*</span>
+              </Label>
               <Select
-                value={formData.nivel_riesgo || "medio"}
-                onValueChange={(value) => handleChange("nivel_riesgo", value)}
+                value={formData.criticidad || ""}
+                onValueChange={(value) => handleChange("criticidad", value)}
               >
-                <SelectTrigger id="nivel_riesgo">
-                  <SelectValue />
+                <SelectTrigger id="criticidad" className={errors.criticidad ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Seleccione un nivel de riesgo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="alto">Alto</SelectItem>
-                  <SelectItem value="medio">Medio</SelectItem>
+                  <SelectItem value="media">Medio</SelectItem>
                   <SelectItem value="bajo">Bajo</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.criticidad && <p className="text-sm text-red-500 mt-1">{errors.criticidad}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             {/* Fechas */}
             <div ref={(el) => { fieldRefs.current.fecha_adquisicion = el }}>
-              <Label htmlFor="fecha_adquisicion">Fecha de Adquisición</Label>
+              <Label htmlFor="fecha_adquisicion">Fecha de Adquisici��n</Label>
               <Input
                 id="fecha_adquisicion"
                 type="date"

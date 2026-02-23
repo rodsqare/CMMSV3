@@ -33,15 +33,20 @@ Railway genera automáticamente variables de entorno para la conexión. Necesita
 ### Variables Requeridas:
 
 ```bash
-# Railway proporciona automáticamente MYSQL_URL
-# Cópiala y úsala como DATABASE_URL
-DATABASE_URL=${{MySQL.DATABASE_URL}}
+# URL de MySQL de Railway
+MYSQL_URL=mysql://root:tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh@mysql.railway.internal:3306/railway
+DATABASE_URL=mysql://root:tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh@mysql.railway.internal:3306/railway
 
-# JWT Secret (genera una clave segura)
+# Node Environment
+NODE_ENV=production
+
+# JWT Secret (genera una clave segura - mínimo 32 caracteres)
 JWT_SECRET=tu-secreto-super-seguro-de-al-menos-32-caracteres
 
+# NextAuth Secret (genera una clave segura)
+NEXTAUTH_SECRET=otro-secreto-super-seguro-de-al-menos-32-caracteres
+
 # Opcional: Forzar seed incluso si ya hay datos (déjalo en false normalmente)
-# El seed se ejecuta automáticamente si la base de datos está vacía
 RUN_SEED=false
 ```
 
@@ -121,16 +126,20 @@ La primera vez que se despliega, el sistema detecta automáticamente que la base
 
 ## Estructura de Variables de Entorno en Railway
 
-Railway proporciona estas variables automáticamente desde MySQL:
+Para tu MySQL de Railway, usa estas credenciales:
 
-- `MYSQL_URL`: URL de conexión completa
-- `MYSQLHOST`: Host de la base de datos
-- `MYSQLPORT`: Puerto (generalmente 3306)
-- `MYSQLDATABASE`: Nombre de la base de datos
-- `MYSQLUSER`: Usuario
-- `MYSQLPASSWORD`: Contraseña
+- **URL**: `mysql://root:tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh@mysql.railway.internal:3306/railway`
+- **Host**: `mysql.railway.internal`
+- **Puerto**: `3306`
+- **Base de datos**: `railway`
+- **Usuario**: `root`
+- **Contraseña**: `tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh`
 
-Usa `DATABASE_URL=${{MySQL.DATABASE_URL}}` para referenciar la URL de MySQL.
+Agrega estas dos variables en Railway:
+```
+MYSQL_URL=mysql://root:tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh@mysql.railway.internal:3306/railway
+DATABASE_URL=mysql://root:tEeycLoXGnjLOUdnYVbDIazcjTNNvDeh@mysql.railway.internal:3306/railway
+```
 
 ## Solución de Problemas
 

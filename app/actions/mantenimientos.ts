@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { transformMantenimientoToUI, type Mantenimiento } from "@/lib/mantenimiento-transform"
 import { createAuditLog } from "./logs"
+import { frecuenciaToDias, validateMaintenanceDateRange } from "@/lib/validation/maintenance-validation"
 
 export async function getAllMantenimientos(params?: {
   page?: number
@@ -80,25 +81,25 @@ export async function getMantenimientoById(id: number) {
   }
 }
 
-// Helper function to convert frecuencia text to days
-function frecuenciaToDias(frecuencia: string): number {
-  const frecuenciaMap: Record<string, number> = {
-    'diaria': 1,
-    'semanal': 7,
-    'quincenal': 15,
-    'mensual': 30,
-    'bimensual': 60,
-    'trimestral': 90,
-    'semestral': 180,
-    'anual': 365,
-  }
-  return frecuenciaMap[frecuencia?.toLowerCase()] || 30
-}
+
 
 export async function createMantenimiento(mantenimiento: any, usuarioId?: number) {
   console.log("[v0] Action: Creating maintenance", mantenimiento)
 
   try {
+    // Validations
+    if (!mantenimiento.tipo || mantenimiento.tipo.trim().length === 0) {
+      return { success: false, error: "El tipo de mantenimiento es obligatorio" }
+    }
+
+    if (!mantenimiento.frecuencia || mantenimiento.frecuencia.trim().length === 0) {
+      return { success: false, error: "La frecuencia es obligatoria" }
+    }
+
+    if (!mantenimiento.descripcion && !mantenimiento.observaciones) {
+      return { success: false, error: "La descripción es obligatoria" }
+    }
+
     // Get current user if not provided
     let creadorId = usuarioId
     if (!creadorId) {
@@ -108,6 +109,20 @@ export async function createMantenimiento(mantenimiento: any, usuarioId?: number
 
     const frecuenciaDias = frecuenciaToDias(mantenimiento.frecuencia)
     const descripcion = mantenimiento.descripcion || mantenimiento.observaciones || "Sin descripción"
+    const proximaProgramada = new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada)
+    const ultimaRealizacion = mantenimiento.ultimaFecha ? new Date(mantenimiento.ultimaFecha) : null
+
+    // Validate maintenance dates based on frequency
+    const dateValidation = validateMaintenanceDateRange(
+      proximaProgramada,
+      ultimaRealizacion,
+      frecuenciaDias,
+      mantenimiento.frecuencia
+    )
+
+    if (!dateValidation.valid) {
+      return { success: false, error: dateValidation.error }
+    }
 
     const result = await prisma.mantenimiento.create({
       data: {
@@ -117,8 +132,8 @@ export async function createMantenimiento(mantenimiento: any, usuarioId?: number
         procedimiento: mantenimiento.procedimiento,
         frecuencia: mantenimiento.frecuencia?.toLowerCase(),
         frecuencia_dias: frecuenciaDias,
-        ultima_realizacion: mantenimiento.ultimaFecha ? new Date(mantenimiento.ultimaFecha) : null,
-        proxima_programada: new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada),
+        ultima_realizacion: ultimaRealizacion,
+        proxima_programada: proximaProgramada,
         activo: mantenimiento.activo ?? true,
         creado_por: creadorId,
       }
@@ -145,24 +160,74 @@ export async function updateMantenimiento(id: number, mantenimiento: any) {
   console.log("[v0] Action: Updating maintenance", id, mantenimiento)
 
   try {
-    const frecuenciaDias = frecuenciaToDias(mantenimiento.frecuencia)
-    const descripcion = mantenimiento.descripcion || mantenimiento.observaciones
+    // Get the current maintenance record to validate
+    const currentMantenimiento = await prisma.mantenimiento.findUnique({
+      where: { id }
+    })
+
+    if (!currentMantenimiento) {
+      return { success: false, error: "Mantenimiento no encontrado" }
+    }
+
+    // Validations
+    if (mantenimiento.tipo && mantenimiento.tipo.trim().length === 0) {
+      return { success: false, error: "El tipo de mantenimiento es obligatorio" }
+    }
+
+    if (mantenimiento.frecuencia && mantenimiento.frecuencia.trim().length === 0) {
+      return { success: false, error: "La frecuencia es obligatoria" }
+    }
+
+    if (mantenimiento.descripcion && mantenimiento.descripcion.trim().length === 0) {
+      return { success: false, error: "La descripción es obligatoria" }
+    }
+
+    const frecuenciaDias = frecuenciaToDias(mantenimiento.frecuencia || currentMantenimiento.frecuencia)
+    const descripcion = mantenimiento.descripcion || mantenimiento.observaciones || currentMantenimiento.descripcion
+    
+    // Get the next maintenance date to validate
+    let proximaProgramada: Date | null = null
+    if (mantenimiento.proximaFecha || mantenimiento.proxima_programada) {
+      proximaProgramada = new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada)
+    }
+
+    let ultimaRealizacion: Date | null = null
+    if (mantenimiento.ultimaFecha) {
+      ultimaRealizacion = new Date(mantenimiento.ultimaFecha)
+    }
+
+    // Only validate dates if they are being updated
+    if (proximaProgramada) {
+      const dateValidation = validateMaintenanceDateRange(
+        proximaProgramada,
+        ultimaRealizacion || currentMantenimiento.ultima_realizacion,
+        frecuenciaDias,
+        mantenimiento.frecuencia || currentMantenimiento.frecuencia
+      )
+
+      if (!dateValidation.valid) {
+        return { success: false, error: dateValidation.error }
+      }
+    }
 
     const updateData: any = {
-      tipo: mantenimiento.tipo?.toLowerCase(),
-      descripcion: descripcion,
-      procedimiento: mantenimiento.procedimiento,
-      frecuencia: mantenimiento.frecuencia?.toLowerCase(),
-      frecuencia_dias: frecuenciaDias,
       updated_at: new Date(),
+    }
+
+    if (mantenimiento.tipo) updateData.tipo = mantenimiento.tipo?.toLowerCase()
+    if (descripcion) updateData.descripcion = descripcion
+    if (mantenimiento.procedimiento !== undefined) updateData.procedimiento = mantenimiento.procedimiento
+    if (mantenimiento.frecuencia) {
+      updateData.frecuencia = mantenimiento.frecuencia?.toLowerCase()
+      updateData.frecuencia_dias = frecuenciaDias
     }
 
     if (mantenimiento.ultimaFecha) {
       updateData.ultima_realizacion = new Date(mantenimiento.ultimaFecha)
     }
     
-    if (mantenimiento.proximaFecha || mantenimiento.proxima_programada) {
-      updateData.proxima_programada = new Date(mantenimiento.proximaFecha || mantenimiento.proxima_programada)
+    if (proximaProgramada) {
+      updateData.proxima_programada = proximaProgramada
     }
     
     if (mantenimiento.activo !== undefined) {
@@ -180,7 +245,7 @@ export async function updateMantenimiento(id: number, mantenimiento: any) {
       accion: 'EDITAR',
       modulo: 'MANTENIMIENTOS',
       descripcion: `Mantenimiento ${id} actualizado`,
-      datos: { mantenimientoId: id, tipo: mantenimiento.tipo }
+      datos: { mantenimientoId: id, tipo: mantenimiento.tipo || currentMantenimiento.tipo }
     }).catch(err => console.error("[v0] Error logging mantenimiento update:", err))
     
     return { success: true, data: result }

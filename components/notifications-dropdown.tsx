@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bell, AlertCircle, Wrench, Clock, User } from 'lucide-react'
+import { Bell, AlertCircle, Wrench, Clock, User, Check, X } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -58,11 +58,55 @@ function getNotificationBadgeColor(tipo: string) {
 }
 
 export function NotificationsDropdown() {
-  const { data = [], error, isLoading } = useSWR<Notification[]>('/api/notificaciones', fetcher, {
+  const { data = [], error, isLoading, mutate } = useSWR<Notification[]>('/api/notificaciones', fetcher, {
     refreshInterval: 15000,
   })
 
   const unreadCount = data?.filter((n) => !n.leida).length || 0
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const response = await fetch('/api/notificaciones/marcar-todas-leidas', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        mutate()
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
+  }
+
+  const handleMarkAsRead = async (e: React.MouseEvent, notificationId: number) => {
+    e.stopPropagation()
+    try {
+      const response = await fetch(`/api/notificaciones/${notificationId}/marcar-leido`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        mutate()
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
+  }
+
+  const handleDeleteNotification = async (e: React.MouseEvent, notificationId: number) => {
+    e.stopPropagation()
+    try {
+      const response = await fetch(`/api/notificaciones/${notificationId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (response.ok) {
+        mutate()
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -80,8 +124,21 @@ export function NotificationsDropdown() {
           <span className="sr-only">Notificaciones</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+        <DropdownMenuLabel className="flex items-center justify-between">
+          <span>Notificaciones</span>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              className="h-6 px-2 text-xs"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Marcar todas
+            </Button>
+          )}
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isLoading ? (
           <div className="py-6 text-center text-sm text-muted-foreground">Cargando...</div>
@@ -91,7 +148,7 @@ export function NotificationsDropdown() {
           <div className="py-6 text-center text-sm text-muted-foreground">No hay notificaciones</div>
         ) : (
           data.slice(0, 5).map((notification) => (
-            <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-pointer hover:bg-muted transition-colors">
+            <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3 cursor-default hover:bg-muted transition-colors group">
               <div className="flex items-start gap-3 w-full">
                 <div className="flex gap-2 items-start pt-0.5">
                   {getNotificationIcon(notification.tipo)}
@@ -108,6 +165,28 @@ export function NotificationsDropdown() {
                   <p className="text-xs text-muted-foreground">
                     {new Date(notification.fecha_envio).toLocaleDateString()} {new Date(notification.fecha_envio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                  {!notification.leida && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleMarkAsRead(e, notification.id)}
+                      className="h-6 w-6 p-0"
+                      title="Marcar como leído"
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDeleteNotification(e, notification.id)}
+                    className="h-6 w-6 p-0"
+                    title="Eliminar"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
             </DropdownMenuItem>

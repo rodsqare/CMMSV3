@@ -16,7 +16,7 @@ export async function GET(
       where: { equipo_id: equipoId },
       orderBy: { created_at: 'desc' },
       include: {
-        subidoPor: {
+        usuario: {
           select: {
             id: true,
             nombre: true,
@@ -103,14 +103,15 @@ export async function POST(
     const documento = await prisma.documento.create({
       data: {
         nombre: archivo.name,
-        tipo: archivo.type,
-        tamanio_kb: Math.ceil(archivo.size / 1024),
+        tipo: 'archivo',
+        ruta_archivo: `equipos/${equipoId}/${Date.now()}-${archivo.name}`,
+        tipo_archivo: archivo.type,
+        tamano: Math.ceil(archivo.size / 1024),
         equipo_id: equipoId,
         subido_por: parseInt(subidoPorId),
-        url_archivo: `equipos/${equipoId}/${Date.now()}-${archivo.name}`,
       },
       include: {
-        subidoPor: {
+        usuario: {
           select: {
             id: true,
             nombre: true,

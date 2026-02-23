@@ -880,36 +880,57 @@ export default function DashboardPage() {
   }, [users, usersPerPage, usersPaginaActual, setUsersTotalPages, setUsersPaginaActual])
 
   // Moved useEffect hooks to the top level
-  // Load notifications when the component mounts
+  // Load notifications when the component mounts and when currentUser changes
   useEffect(() => {
-    loadNotifications()
-  }, [])
+    if (currentUser?.id) {
+      console.log("[v0] Loading notifications for user:", currentUser.id)
+      loadNotifications()
+    }
+  }, [currentUser?.id])
+
+  // Define loadNotifications here so it can be used in useEffect below
+  const loadNotifications = async () => {
+    try {
+      const { getNotificationsForUser } = await import("@/app/actions/notificaciones")
+      const notifs = await getNotificationsForUser(currentUser?.id)
+      setNotifications(notifs)
+      setUnreadCount(notifs.filter((n) => !n.leida).length)
+      console.log("[v0] Loaded notifications:", notifs.length, "for user:", currentUser?.id)
+    } catch (error) {
+      console.error("[v0] Error loading notifications:", error)
+      setNotifications([])
+      setUnreadCount(0)
+    }
+  }
 
   useEffect(() => {
     const checkMaintenances = async () => {
       try {
+        console.log("[v0] Checking maintenance notifications...")
         // Generate automatic maintenance notifications
         const { generateMaintenanceNotifications } = await import("@/app/actions/notificaciones")
-        await generateMaintenanceNotifications()
+        const result = await generateMaintenanceNotifications()
         
-        const result = await checkUpcomingMaintenances()
-        if (result && result.notificaciones_creadas > 0) {
+        console.log("[v0] Generated", result.notificaciones_creadas, "maintenance notifications")
+        
+        // Reload notifications only if new ones were created
+        if (result && result.notificaciones_creadas > 0 && currentUser?.id) {
+          console.log("[v0] Reloading notifications after maintenance check...")
           loadNotifications()
         }
-        
-        // Reload notifications after generation
-        await loadNotifications()
       } catch (error) {
         console.error("[v0] Error checking upcoming maintenances:", error)
       }
     }
 
-    checkMaintenances()
-    // Check every 5 minutes
-    const interval = setInterval(checkMaintenances, 5 * 60 * 1000)
-
-    return () => clearInterval(interval)
-  }, [])
+    // Only run if user is logged in
+    if (currentUser?.id) {
+      checkMaintenances()
+      // Check every 5 minutes
+      const interval = setInterval(checkMaintenances, 5 * 60 * 1000)
+      return () => clearInterval(interval)
+    }
+  }, [currentUser?.id])
 
   // ADDED: Load equipment when entering mantenimiento section to populate select options
   useEffect(() => {
@@ -2744,55 +2765,39 @@ export default function DashboardPage() {
     }
   }
 
-  // CHANGE: handleFileUpload function
+  // CHANGE: Simplified handleFileUpload - remove complex dependencies
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !selectedEquipment) {
-      return
-    }
+    if (!file || !selectedEquipment?.id) return
 
     try {
       setEquipmentLoading(true)
-      const userId = localStorage.getItem("userId")
+      const userId = localStorage.getItem("userId") || "1"
       const authToken = localStorage.getItem("authToken")
-      console.log("[v0] handleFileUpload - userId:", userId, "hasToken:", !!authToken)
-
-      // Use the lib/api/documentos uploadDocumento function
-      const { uploadDocumento } = await import("@/lib/api/documentos")
-      const newDoc = await uploadDocumento(
-        selectedEquipment.id,
-        file,
-        userId ? Number.parseInt(userId) : 1, // Default to 1 if userId is not found, though this should be handled by authentication
-      )
-
-      // Fetch updated equipment details to refresh the list of documents
-      const { getEquipo } = await import("@/lib/api/equipos")
-      const updatedEquipment = await getEquipo(selectedEquipment.id)
-
-      const transformedEquipment = transformEquipoToEquipment(updatedEquipment)
-
-      setSelectedEquipment(transformedEquipment)
-
-      // Update equipment list in the main view as well
-      setEquipment(equipment.map((eq) => (eq.id === selectedEquipment.id ? transformedEquipment : eq)))
-
-      toast({
-        title: "Documento subido",
-        description: `El archivo ${file.name} se ha subido exitosamente.`,
+      
+      const formData = new FormData()
+      formData.append("archivo", file)
+      formData.append("subido_por_id", userId)
+      
+      const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
+        method: "POST",
+        credentials: "include",
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        body: formData,
       })
+      
+      if (!response.ok) throw new Error("Error uploading file")
+      
+      toast({ title: "Éxito", description: `${file.name} subido correctamente` })
+      
+      // Reload the page to refresh equipment data
+      setTimeout(() => window.location.reload(), 500)
     } catch (error) {
-      console.error("[v0] Error uploading document:", error)
-      toast({
-        variant: "destructive",
-        title: "Error al subir documento",
-        description: error instanceof Error ? error.message : "Ocurrió un error al subir el archivo.",
-      })
+      console.error("[v0] Upload error:", error)
+      toast({ variant: "destructive", title: "Error", description: "Error al subir documento" })
     } finally {
       setEquipmentLoading(false)
-      // Reset file input
-      if (e.target) {
-        e.target.value = ""
-      }
+      if (e.target) e.target.value = ""
     }
   }
 
@@ -3761,16 +3766,22 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <Button size="sm" variant="outline" onClick={() => document.getElementById("fileInput")?.click()}>
+                  <label 
+                    htmlFor="fileInput"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer"
+                  >
                     <Upload className="h-4 w-4 mr-2" />
                     Subir Archivo
-                  </Button>
+                  </label>
                   <input
                     id="fileInput"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    style={{ display: "none" }}
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                    onChange={(e) => {
+                      console.log("[v0] File input onChange triggered", e.target.files?.length)
+                      handleFileUpload(e)
+                    }}
+                    className="hidden"
                   />
                 </div>
                 <div className="space-y-2">
@@ -4543,57 +4554,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Activity Section */}
-              <div>
-                <h3 className="text-lg font-medium mb-3">Actividades Recientes</h3>
-                {loadingUserActivity ? (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Cargando actividad...</p>
-                  </div>
-                ) : userActivity ? (
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Último acceso:</p>
-                      <p className="text-sm text-gray-600">{userActivity.ultimo_acceso || "Sin registro"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Órdenes de trabajo creadas:</p>
-                      <p className="text-sm text-gray-600">{userActivity.ordenes_creadas}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Órdenes de trabajo asignadas:</p>
-                      <p className="text-sm text-gray-600">{userActivity.ordenes_asignadas}</p>
-                    </div>
-
-                    {userActivity.actividades_recientes.length > 0 && (
-                      <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Últimas actividades:</p>
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {userActivity.actividades_recientes.map((actividad: any) => (
-                            <div key={actividad.id} className="bg-white p-2 rounded border border-gray-200">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-gray-900">{actividad.accion}</p>
-                                  <p className="text-xs text-gray-600 truncate">{actividad.descripcion}</p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-xs text-gray-500">{actividad.modulo}</span>
-                                    <span className="text-xs text-gray-400">•</span>
-                                    <span className="text-xs text-gray-500">{actividad.timestamp}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">No se pudo cargar la actividad del usuario.</p>
-                  </div>
-                )}
-              </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button
@@ -5276,7 +5236,7 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="calibracion">Calibración</SelectItem>
+                  <SelectItem value="calibracion">Calibraci��n</SelectItem>
                   <SelectItem value="inspeccion">Inspección</SelectItem>
                   <SelectItem value="limpieza">Limpieza</SelectItem>
                 </SelectContent>
@@ -5554,21 +5514,6 @@ export default function DashboardPage() {
                 onChange={(e) => setMaintenanceForm({ ...maintenanceForm, observaciones: e.target.value })}
               />
             </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="observaciones">Observaciones *</Label>
-              <Input
-                id="observaciones"
-                value={maintenanceForm.observaciones || ""}
-                onChange={(e) => {
-                  setMaintenanceForm({ ...maintenanceForm, observaciones: e.target.value })
-                  setMaintenanceFormErrors({ ...maintenanceFormErrors, observaciones: "" })
-                }}
-                placeholder="Detalles adicionales..."
-              />
-              {maintenanceFormErrors.observaciones && (
-                <p className="text-red-500 text-xs">{maintenanceFormErrors.observaciones}</p>
-              )}
-            </div>
           </div>
           {maintenanceFormErrors.general && <p className="text-red-500 text-xs">{maintenanceFormErrors.general}</p>}
           <div className="flex justify-end gap-2 mt-6">
@@ -5643,23 +5588,6 @@ export default function DashboardPage() {
                 >
                   <Edit className="h-4 w-4 mr-2 text-amber-600" />
                   Modificar
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-blue-600 hover:bg-blue-50 border-blue-300"
-                  onClick={() => {
-                    setReportType("cronograma")
-                    setShowMaintenanceDetails(false)
-                    const reportElement = document.getElementById("reports-section")
-                    if (reportElement) {
-                      setTimeout(() => {
-                        reportElement.scrollIntoView({ behavior: "smooth" })
-                      }, 100)
-                    }
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Cronograma
                 </Button>
                 <Button
                   variant="outline"
@@ -5961,9 +5889,6 @@ export default function DashboardPage() {
                 <option value="Crear">Crear</option>
                 <option value="Editar">Editar</option>
                 <option value="Eliminar">Eliminar</option>
-                <option value="Ver">Ver</option>
-                <option value="Descargar">Descargar</option>
-                <option value="Exportar">Exportar</option>
               </select>
             </div>
             <div className="text-sm text-muted-foreground mt-2">
@@ -6332,39 +6257,25 @@ export default function DashboardPage() {
 
   // The useEffect for loading notifications is now at the top level.
 
-  const loadNotifications = async () => {
-    try {
-      const { getNotificationsForUser } = await import("@/app/actions/notificaciones")
-      const notifs = await getNotificationsForUser()
-      setNotifications(notifs)
-      setUnreadCount(notifs.filter((n) => !n.leida).length)
-      console.log("[v0] Loaded notifications:", notifs.length)
-    } catch (error) {
-      console.error("[v0] Error loading notifications:", error)
-      setNotifications([])
-      setUnreadCount(0)
-    }
-  }
-
   const handleMarkNotificationAsRead = useCallback(async (id: number) => {
     try {
       const { markNotificationAsRead } = await import("@/app/actions/notificaciones")
-      await markNotificationAsRead(id)
+      await markNotificationAsRead(id, currentUser?.id)
       await loadNotifications()
     } catch (error) {
       console.error("[v0] Error marking notification as read:", error)
     }
-  }, [])
+  }, [currentUser?.id])
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
       const { markAllNotificationsAsRead } = await import("@/app/actions/notificaciones")
-      await markAllNotificationsAsRead()
+      await markAllNotificationsAsRead(currentUser?.id)
       await loadNotifications()
     } catch (error) {
       console.error("[v0] Error marking all notifications as read:", error)
     }
-  }, [])
+  }, [currentUser?.id])
 
   // ADDED: Logo change handler
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
