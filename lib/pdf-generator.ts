@@ -586,8 +586,8 @@ export async function generateWorkOrderPDF(orden: any, equipo?: any) {
   }
 
   const formatCurrency = (amount: number | undefined): string => {
-    if (amount === undefined || amount === null) return "$0.00"
-    return `$${amount.toFixed(2)}`
+    if (amount === undefined || amount === null) return "Bs 0.00"
+    return `Bs ${amount.toFixed(2)}`
   }
 
   const getCurrentDate = (): string => {
@@ -832,13 +832,6 @@ export async function generateWorkOrderPDF(orden: any, equipo?: any) {
   doc.text("Costo Total", 17 + colWidth * 2, yPos + 5)
   doc.setFont("helvetica", "normal")
   doc.text(formatCurrency(orden.costoTotal), 17 + colWidth * 2, yPos + 10)
-
-  // Observaciones (full width)
-  doc.setFont("helvetica", "bold")
-  doc.text("Observaciones", 17, yPos + 16)
-  doc.setFont("helvetica", "normal")
-  const obsText = orden.observaciones || "-"
-  doc.text(obsText, 17, yPos + 21)
 
   yPos += dataHeight + 5
 

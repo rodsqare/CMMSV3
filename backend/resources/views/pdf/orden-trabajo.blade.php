@@ -372,14 +372,7 @@
         </div>
 
         <!-- Observations section -->
-        @if($orden->observaciones || $orden->notas)
-        <div class="observations-section">
-            <div class="observations-title">Observaciones Adicionales:</div>
-            <div class="observations-content">
-                {{ $orden->observaciones ?? $orden->notas ?? 'Sin observaciones' }}
-            </div>
-        </div>
-        @endif
+        <!-- REMOVED: Observaciones section -->
 
         <!-- Signatures section with two columns -->
         <div class="signatures-section">
