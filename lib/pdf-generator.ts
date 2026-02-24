@@ -178,7 +178,7 @@ export async function generatePDF(options: {
     ])
     autoTable(doc, {
       startY: yPos,
-      head: [["Equipo", "Tipo", "Frecuencia", "Próxima Fecha", "Estado", "Estado Equipo"]],
+      head: [["Equipo", "Tipo", "Frecuencia", "Próxima Fecha", "Resultado", "Estado Equipo"]],
       body: tableData,
       theme: "striped",
       headStyles: {
