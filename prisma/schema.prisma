@@ -92,6 +92,7 @@ model OrdenTrabajo {
   asignado_a        Int?
   notas             String?  @db.Text
   resultado         String?  @db.Text
+  observaciones     String?  @db.Text
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
