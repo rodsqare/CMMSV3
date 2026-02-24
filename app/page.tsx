@@ -1981,7 +1981,7 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="costoRepuestos">Costo Repuestos ($)</Label>
+                  <Label htmlFor="costoRepuestos">Costo Repuestos (Bs)</Label>
                   <Input
                     id="costoRepuestos"
                     type="number"
@@ -1991,7 +1991,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="costoTotal">Costo Total ($)</Label>
+                  <Label htmlFor="costoTotal">Costo Total (Bs)</Label>
                   <Input
                     id="costoTotal"
                     type="number"
@@ -2078,17 +2078,12 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Repuestos</Label>
-                    <p className="text-base">${Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
+                    <p className="text-base">Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
-                    <p className="text-base font-semibold">${Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
+                    <p className="text-base font-semibold">Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
                   </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
-                  <p className="text-base mt-1">${Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
                 </div>
               </div>
             )}
