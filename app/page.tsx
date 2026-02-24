@@ -1196,7 +1196,6 @@ export default function DashboardPage() {
         horasTrabajadas: newOrderData.horasTrabajadas,
         costoRepuestos: newOrderData.costoRepuestos,
         costoTotal: newOrderData.costoTotal,
-        observaciones: newOrderData.observaciones,
       }
 
   console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
@@ -1982,7 +1981,7 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="costoRepuestos">Costo Repuestos ($)</Label>
+                  <Label htmlFor="costoRepuestos">Costo Repuestos (Bs)</Label>
                   <Input
                     id="costoRepuestos"
                     type="number"
@@ -1992,7 +1991,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="costoTotal">Costo Total ($)</Label>
+                  <Label htmlFor="costoTotal">Costo Total (Bs)</Label>
                   <Input
                     id="costoTotal"
                     type="number"
@@ -2001,16 +2000,6 @@ export default function DashboardPage() {
                     onChange={(e) => setNewOrderData({ ...newOrderData, costoTotal: Number(e.target.value) })}
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observaciones">Observaciones</Label>
-                <Textarea
-                  id="observaciones"
-                  placeholder="Observaciones adicionales..."
-                  value={newOrderData.observaciones || ""}
-                  onChange={(e) => setNewOrderData({ ...newOrderData, observaciones: e.target.value })}
-                  rows={3}
-                />
               </div>
             </div>
             <DialogFooter>
@@ -2056,15 +2045,15 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Creación</Label>
-                    <p className="text-base">{selectedOrder.fechaCreacion}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaCreacion)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Inicio</Label>
-                    <p className="text-base">{selectedOrder.fechaInicio || "-"}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaInicio) || "-"}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Finalización</Label>
-                    <p className="text-base">{selectedOrder.fechaFinalizacion || "-"}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaFinalizacion) || "-"}</p>
                   </div>
                 </div>
                 <div>
@@ -2079,17 +2068,12 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Repuestos</Label>
-                    <p className="text-base">${Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
+                    <p className="text-base">Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
-                    <p className="text-base font-semibold">${Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
+                    <p className="text-base font-semibold">Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
                   </div>
-                </div>
-
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Observaciones</Label>
-                  <p className="text-base mt-1">{selectedOrder.observaciones || "-"}</p>
                 </div>
               </div>
             )}

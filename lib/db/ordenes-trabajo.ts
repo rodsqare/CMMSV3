@@ -20,7 +20,6 @@ function transformFromDB(record: any): OrdenTrabajo {
     horasTrabajadas: record.tiempo_estimado,
     costoRepuestos: record.costo_estimado ? Number(record.costo_estimado) : undefined,
     costoTotal: record.costo_real ? Number(record.costo_real) : undefined,
-    observaciones: record.observaciones || record.notas,
     createdAt: record.created_at?.toISOString(),
     updatedAt: record.updated_at?.toISOString(),
   }
@@ -39,8 +38,11 @@ export async function createOrdenDB(data: any): Promise<OrdenTrabajo> {
         descripcion: data.descripcion,
         estado: 'pendiente',
         fecha_programada: data.fecha_programada ? new Date(data.fecha_programada) : null,
+        fecha_inicio: data.fecha_inicio ? new Date(data.fecha_inicio) : null,
+        fecha_finalizacion: data.fecha_finalizacion ? new Date(data.fecha_finalizacion) : null,
         tiempo_estimado: data.tiempo_estimado ? parseInt(data.tiempo_estimado) : null,
         costo_estimado: data.costo_estimado ? parseFloat(data.costo_estimado) : null,
+        costo_real: data.costo_real ? parseFloat(data.costo_real) : null,
         asignado_a: data.asignado_a || null,
         creado_por: data.creado_por || 1,
       },
@@ -148,8 +150,15 @@ export async function updateOrdenDB(id: number, data: any): Promise<OrdenTrabajo
     if (data.fecha_programada !== undefined) {
       updateData.fecha_programada = data.fecha_programada ? new Date(data.fecha_programada) : null
     }
+    if (data.fecha_inicio !== undefined) {
+      updateData.fecha_inicio = data.fecha_inicio ? new Date(data.fecha_inicio) : null
+    }
+    if (data.fecha_finalizacion !== undefined) {
+      updateData.fecha_finalizacion = data.fecha_finalizacion ? new Date(data.fecha_finalizacion) : null
+    }
     if (data.tiempo_estimado !== undefined) updateData.tiempo_estimado = data.tiempo_estimado ? parseInt(data.tiempo_estimado) : null
     if (data.costo_estimado !== undefined) updateData.costo_estimado = data.costo_estimado ? parseFloat(data.costo_estimado) : null
+    if (data.costo_real !== undefined) updateData.costo_real = data.costo_real ? parseFloat(data.costo_real) : null
     if (data.asignado_a !== undefined) updateData.asignado_a = data.asignado_a
 
     const orden = await prisma.ordenTrabajo.update({
