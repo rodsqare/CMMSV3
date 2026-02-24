@@ -114,7 +114,6 @@ function transformOrdenToAPI(orden: Partial<OrdenTrabajo>): any {
     ...(orden.horasTrabajadas !== undefined && orden.horasTrabajadas !== null && { tiempo_estimado: orden.horasTrabajadas }),
     ...(orden.costoRepuestos !== undefined && orden.costoRepuestos !== null && { costo_estimado: orden.costoRepuestos }),
     ...(orden.costoTotal !== undefined && orden.costoTotal !== null && { costo_real: orden.costoTotal }),
-    ...(orden.observaciones && { observaciones: orden.observaciones }),
     // For updates only, include estado
     ...(orden.id && { estado: estado }),
   }

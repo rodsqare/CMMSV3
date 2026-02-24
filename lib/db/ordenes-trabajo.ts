@@ -158,7 +158,6 @@ export async function updateOrdenDB(id: number, data: any): Promise<OrdenTrabajo
     if (data.costo_estimado !== undefined) updateData.costo_estimado = data.costo_estimado ? parseFloat(data.costo_estimado) : null
     if (data.costo_real !== undefined) updateData.costo_real = data.costo_real ? parseFloat(data.costo_real) : null
     if (data.asignado_a !== undefined) updateData.asignado_a = data.asignado_a
-    if (data.observaciones !== undefined) updateData.observaciones = data.observaciones
 
     const orden = await prisma.ordenTrabajo.update({
       where: { id },
