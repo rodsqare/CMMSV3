@@ -106,7 +106,9 @@ import {
   updateMantenimiento, // Imported updateMantenimiento
   deleteMantenimiento, // Imported deleteMantenimiento
   checkUpcomingMaintenances,
+  completeMantenimiento, // Imported completeMantenimiento
 } from "./actions/mantenimientos"
+
 import type { Mantenimiento } from "@/lib/api/mantenimientos"
 import { generatePDF, downloadPDF, generateEquipmentTechnicalSheet, generateWorkOrderPDF } from "@/lib/pdf-generator" // Added generateEquipmentTechnicalSheet, generateWorkOrderPDF
 import { canAccessSection, type CurrentUser, type RoleType, type PermissionKey, DEFAULT_PERMISSIONS_BY_ROLE } from "@/lib/utils/permissions" // Import DEFAULT_PERMISSIONS_BY_ROLE
@@ -526,6 +528,8 @@ export default function DashboardPage() {
   // CHANGE: Add state for maintenance delete confirmation dialog
   const [isDeleteMaintenanceDialogOpen, setIsDeleteMaintenanceDialogOpen] = useState(false)
   const [selectedMaintenanceToDelete, setSelectedMaintenanceToDelete] = useState<number | null>(null)
+
+
 
   // CHANGE: Moved layout and navigation logic to AppHeader and AppSidebar components
   const [currentView, setCurrentView] = useState("dashboard")
@@ -4874,6 +4878,8 @@ export default function DashboardPage() {
         return "bg-yellow-100 text-yellow-800"
       case "vencido":
         return "bg-red-100 text-red-800"
+      case "próximo":
+        return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -4994,17 +5000,28 @@ export default function DashboardPage() {
   }
 
   const handleEditMaintenance = (maintenance: Mantenimiento) => {
+    // Format dates for the input (YYYY-MM-DD format)
+    const formatDateForInput = (dateString: any) => {
+      if (!dateString) return ""
+      try {
+        const date = new Date(dateString)
+        return date.toISOString().split('T')[0]
+      } catch {
+        return ""
+      }
+    }
+
     setSelectedMaintenance(maintenance)
     setMaintenanceForm({
-      equipoId: (maintenance as any).equipo_id || (maintenance as any).equipoId,
+      equipoId: maintenance.equipo_id || maintenance.equipoId,
       tipo: maintenance.tipo,
       frecuencia: maintenance.frecuencia,
-      proximaFecha: (maintenance as any).proxima_programada || (maintenance as any).proximaFecha,
-      ultimaFecha: (maintenance as any).ultima_realizacion || (maintenance as any).ultimaFecha,
-      observaciones: (maintenance as any).observaciones || (maintenance as any).descripcion,
+      proximaFecha: formatDateForInput(maintenance.proxima_programada || maintenance.proximaFecha),
+      ultimaFecha: formatDateForInput(maintenance.ultima_realizacion || maintenance.ultimaFecha),
+      observaciones: maintenance.observaciones || maintenance.descripcion,
       descripcion: maintenance.descripcion,
       procedimiento: maintenance.procedimiento,
-      responsableId: (maintenance as any).creado_por || (maintenance as any).responsableId,
+      responsableId: maintenance.creado_por,
     })
     setShowMaintenanceForm(true)
     setMaintenanceFormErrors({})
@@ -5013,6 +5030,70 @@ export default function DashboardPage() {
   const handleDeleteMaintenance = async (id: number) => {
     setSelectedMaintenanceToDelete(id)
     setIsDeleteMaintenanceDialogOpen(true)
+  }
+
+  const handleCompleteMaintenance = async (maintenance: Mantenimiento) => {
+    setMaintenanceLoading(true)
+    try {
+      // First, complete the maintenance
+      const completeResult = await completeMantenimiento(
+        maintenance.id,
+        {
+          tiempo_real: undefined,
+          costo: undefined,
+          observaciones: `Mantenimiento completado automáticamente`,
+          estado_equipo: "operativo",
+        },
+        currentUser?.id || 1
+      )
+
+      if (!completeResult.success) {
+        toast({
+          variant: "destructive",
+          title: "Error al completar mantenimiento",
+          description: completeResult.error || "No se pudo completar el mantenimiento",
+        })
+        return
+      }
+
+      // Then create a work order automatically
+      const equipoNombre = typeof maintenance.equipo === "object" ? maintenance.equipo.nombre : maintenance.equipo || "Equipo desconocido"
+      
+      const ordenResult = await saveOrdenTrabajo({
+        equipo_id: maintenance.equipo_id,
+        tipo: maintenance.tipo || "Mantenimiento",
+        prioridad: "media",
+        descripcion: `Orden de trabajo generada automáticamente por la finalización del mantenimiento: ${maintenance.descripcion || "Mantenimiento programado"}`,
+        estado: "pendiente",
+        tiempo_estimado: null,
+        costo_estimado: null,
+      })
+
+      if (ordenResult.success) {
+        toast({
+          title: "Mantenimiento completado",
+          description: `Mantenimiento completado y orden de trabajo #${ordenResult.data?.numero_orden} creada`,
+        })
+      } else {
+        toast({
+          title: "Mantenimiento completado parcialmente",
+          description: "El mantenimiento fue completado pero hay problemas creando la orden de trabajo",
+        })
+      }
+
+      setShowMaintenanceDetails(false)
+      await loadMaintenanceSchedules()
+      await loadMaintenanceStats()
+    } catch (error) {
+      console.error("[v0] Error completing maintenance:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo completar el mantenimiento",
+      })
+    } finally {
+      setMaintenanceLoading(false)
+    }
   }
 
   const confirmDeleteMaintenance = async () => {
@@ -5287,8 +5368,9 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-4 py-2">
                         {(() => {
-                          const status = isOverdue(m.proxima_programada) ? "Vencido" : isUpcoming(m.proxima_programada) ? "Próximo" : "Programado"
-                          return <Badge className={`${getMaintenanceStatusColor(status)}`}>{status}</Badge>
+                          const resultado = m.resultado || (isOverdue(m.proxima_programada) ? "vencido" : isUpcoming(m.proxima_programada) ? "próximo" : "pendiente")
+                          const displayResultado = resultado.charAt(0).toUpperCase() + resultado.slice(1)
+                          return <Badge className={`${getMaintenanceStatusColor(resultado)}`}>{displayResultado}</Badge>
                         })()}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600 max-w-xs truncate" title={m.observaciones}>
@@ -5320,6 +5402,20 @@ export default function DashboardPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Editar</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 bg-transparent"
+                                onClick={() => handleCompleteMaintenance(m)}
+                              >
+                                {/* CHANGE: Added green checkmark for complete maintenance */}
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Completar mantenimiento</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -6147,6 +6243,17 @@ export default function DashboardPage() {
 
 
   const handleEditEquipment = (equipo: Equipment) => {
+    // Format dates for input fields (YYYY-MM-DD format)
+    const formatDateForInput = (dateString: any) => {
+      if (!dateString) return ""
+      try {
+        const date = new Date(dateString)
+        return date.toISOString().split('T')[0]
+      } catch {
+        return ""
+      }
+    }
+
     // Set the equipment form with all fields from the selected equipment
     setEquipmentForm({
       id: equipo.id,
@@ -6157,13 +6264,13 @@ export default function DashboardPage() {
       ubicacion: equipo.ubicacion || "",
       estado: equipo.estado || "operativo",
       voltaje: equipo.voltaje || "",
-      fechaInstalacion: equipo.fechaInstalacion || "",
+      fechaInstalacion: formatDateForInput(equipo.fechaInstalacion),
       frecuencia: equipo.frecuencia || "",
-      fechaRetiro: equipo.fechaRetiro || "",
+      fechaRetiro: formatDateForInput(equipo.fechaRetiro),
       codigoInstitucional: equipo.codigoInstitucional || "",
       servicio: equipo.servicio || "",
-      vencimientoGarantia: equipo.vencimientoGarantia || "",
-      fechaIngreso: equipo.fechaIngreso || "",
+      vencimientoGarantia: formatDateForInput(equipo.vencimientoGarantia),
+      fechaIngreso: formatDateForInput(equipo.fechaIngreso),
       procedencia: equipo.procedencia || "",
       potencia: equipo.potencia || "",
       corriente: equipo.corriente || "",
@@ -6189,9 +6296,9 @@ export default function DashboardPage() {
             ...prevForm,
             numeroSerie: transformed.numeroSerie || prevForm.numeroSerie,
             codigoInstitucional: transformed.codigoInstitucional || prevForm.codigoInstitucional,
-            fechaIngreso: transformed.fechaIngreso || prevForm.fechaIngreso,
-            vencimientoGarantia: transformed.vencimientoGarantia || prevForm.vencimientoGarantia,
-            fechaInstalacion: transformed.fechaInstalacion || prevForm.fechaInstalacion,
+            fechaIngreso: formatDateForInput(transformed.fechaIngreso) || prevForm.fechaIngreso,
+            vencimientoGarantia: formatDateForInput(transformed.vencimientoGarantia) || prevForm.vencimientoGarantia,
+            fechaInstalacion: formatDateForInput(transformed.fechaInstalacion) || prevForm.fechaInstalacion,
             otrosEspecificaciones: transformed.otrosEspecificaciones || prevForm.otrosEspecificaciones,
             accesoriosConsumibles: transformed.accesoriosConsumibles || prevForm.accesoriosConsumibles,
             estadoEquipo: transformed.estadoEquipo || prevForm.estadoEquipo,

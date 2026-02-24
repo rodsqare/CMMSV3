@@ -13,6 +13,7 @@ export type Mantenimiento = {
   ultima_realizacion?: string
   descripcion?: string
   procedimiento?: string
+  resultado?: string
   creado_por?: number
   creador?: {
     id: number
