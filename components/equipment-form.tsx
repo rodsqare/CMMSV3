@@ -172,6 +172,16 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
   // Handle input change with validation
   const handleChange = (name: string, value: any) => {
+    // Limit codigo_institucional to 12 digits
+    if (name === "codigo_institucional") {
+      // Only allow digits
+      value = value.replace(/\D/g, "")
+      // Limit to 12 digits
+      if (value.length > 12) {
+        value = value.slice(0, 12)
+      }
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
 
     // Clear error for this field when user starts typing
