@@ -106,6 +106,7 @@ import {
   updateMantenimiento, // Imported updateMantenimiento
   deleteMantenimiento, // Imported deleteMantenimiento
   checkUpcomingMaintenances,
+  completeMantenimiento, // Imported completeMantenimiento
 } from "./actions/mantenimientos"
 import type { Mantenimiento } from "@/lib/api/mantenimientos"
 import { generatePDF, downloadPDF, generateEquipmentTechnicalSheet, generateWorkOrderPDF } from "@/lib/pdf-generator" // Added generateEquipmentTechnicalSheet, generateWorkOrderPDF
@@ -526,6 +527,16 @@ export default function DashboardPage() {
   // CHANGE: Add state for maintenance delete confirmation dialog
   const [isDeleteMaintenanceDialogOpen, setIsDeleteMaintenanceDialogOpen] = useState(false)
   const [selectedMaintenanceToDelete, setSelectedMaintenanceToDelete] = useState<number | null>(null)
+
+  // CHANGE: Add state for complete maintenance dialog
+  const [isCompleteMaintenanceDialogOpen, setIsCompleteMaintenanceDialogOpen] = useState(false)
+  const [selectedMaintenanceToComplete, setSelectedMaintenanceToComplete] = useState<Mantenimiento | null>(null)
+  const [completeMaintenanceData, setCompleteMaintenanceData] = useState({
+    tiempo_real: "",
+    costo: "",
+    observaciones: "",
+    estado_equipo: "",
+  })
 
   // CHANGE: Moved layout and navigation logic to AppHeader and AppSidebar components
   const [currentView, setCurrentView] = useState("dashboard")
@@ -5015,6 +5026,59 @@ export default function DashboardPage() {
     setIsDeleteMaintenanceDialogOpen(true)
   }
 
+  const handleCompleteMaintenance = (maintenance: Mantenimiento) => {
+    setSelectedMaintenanceToComplete(maintenance)
+    setCompleteMaintenanceData({
+      tiempo_real: "",
+      costo: "",
+      observaciones: "",
+      estado_equipo: "operativo",
+    })
+    setIsCompleteMaintenanceDialogOpen(true)
+  }
+
+  const confirmCompleteMaintenance = async () => {
+    if (!selectedMaintenanceToComplete) return
+
+    setMaintenanceLoading(true)
+    try {
+      const result = await completeMantenimiento(selectedMaintenanceToComplete.id, completeMaintenanceData, currentUser?.id || 1)
+
+      if (result.success) {
+        toast({
+          title: "Mantenimiento completado",
+          description: "El mantenimiento ha sido marcado como completado",
+        })
+        setIsCompleteMaintenanceDialogOpen(false)
+        setSelectedMaintenanceToComplete(null)
+        setCompleteMaintenanceData({
+          tiempo_real: "",
+          costo: "",
+          observaciones: "",
+          estado_equipo: "",
+        })
+        setShowMaintenanceDetails(false)
+        await loadMaintenanceSchedules()
+        await loadMaintenanceStats()
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error al completar",
+          description: result.error || "No se pudo completar el mantenimiento",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error completing maintenance:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo completar el mantenimiento",
+      })
+    } finally {
+      setMaintenanceLoading(false)
+    }
+  }
+
   const confirmDeleteMaintenance = async () => {
     if (!selectedMaintenanceToDelete) return
 
@@ -5320,6 +5384,20 @@ export default function DashboardPage() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Editar</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700 bg-transparent"
+                                onClick={() => handleCompleteMaintenance(m)}
+                              >
+                                {/* CHANGE: Added green checkmark for complete maintenance */}
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Completar mantenimiento</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -6489,6 +6567,92 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* MAINTENANCE DELETE CONFIRMATION DIALOG */}
+      {/* Complete Maintenance Dialog */}
+      <Dialog open={isCompleteMaintenanceDialogOpen} onOpenChange={setIsCompleteMaintenanceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Completar Mantenimiento</DialogTitle>
+            <DialogDescription>
+              Registrar los datos de finalización para el mantenimiento de {selectedMaintenanceToComplete?.equipo ? (typeof selectedMaintenanceToComplete.equipo === 'object' ? selectedMaintenanceToComplete.equipo.nombre : selectedMaintenanceToComplete.equipo) : 'N/A'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tiempo_real">Tiempo Real (minutos)</Label>
+                <Input
+                  id="tiempo_real"
+                  type="number"
+                  placeholder="0"
+                  value={completeMaintenanceData.tiempo_real}
+                  onChange={(e) => setCompleteMaintenanceData({ ...completeMaintenanceData, tiempo_real: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="costo">Costo ($)</Label>
+                <Input
+                  id="costo"
+                  type="number"
+                  placeholder="0.00"
+                  value={completeMaintenanceData.costo}
+                  onChange={(e) => setCompleteMaintenanceData({ ...completeMaintenanceData, costo: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="estado_equipo">Estado del Equipo</Label>
+              <Select
+                value={completeMaintenanceData.estado_equipo}
+                onValueChange={(value) => setCompleteMaintenanceData({ ...completeMaintenanceData, estado_equipo: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="operativo">Operativo</SelectItem>
+                  <SelectItem value="en_reparacion">En Reparación</SelectItem>
+                  <SelectItem value="fuera_servicio">Fuera de Servicio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="observaciones">Observaciones</Label>
+              <Textarea
+                id="observaciones"
+                placeholder="Describe los detalles del mantenimiento realizado..."
+                value={completeMaintenanceData.observaciones}
+                onChange={(e) => setCompleteMaintenanceData({ ...completeMaintenanceData, observaciones: e.target.value })}
+                className="min-h-24"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCompleteMaintenanceDialogOpen(false)
+                setSelectedMaintenanceToComplete(null)
+                setCompleteMaintenanceData({
+                  tiempo_real: "",
+                  costo: "",
+                  observaciones: "",
+                  estado_equipo: "",
+                })
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700" 
+              onClick={confirmCompleteMaintenance} 
+              disabled={maintenanceLoading}
+            >
+              {maintenanceLoading ? "Completando..." : "Marcar como Completado"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isDeleteMaintenanceDialogOpen} onOpenChange={setIsDeleteMaintenanceDialogOpen}>
         <DialogContent>
           <DialogHeader>
