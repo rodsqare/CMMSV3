@@ -1190,19 +1190,23 @@ export default function DashboardPage() {
     }
 
     // Validate costs are positive if provided
-    if (newOrderData.costoRepuestos !== undefined && newOrderData.costoRepuestos !== null && newOrderData.costoRepuestos < 0) {
+    console.log("[v0] Validating costoRepuestos:", newOrderData.costoRepuestos, "Type:", typeof newOrderData.costoRepuestos)
+    if (newOrderData.costoRepuestos !== undefined && newOrderData.costoRepuestos !== null && Number(newOrderData.costoRepuestos) < 0) {
       errors.costoRepuestos = "El costo de repuestos no puede ser negativo"
     }
 
-    if (newOrderData.costoTotal !== undefined && newOrderData.costoTotal !== null && newOrderData.costoTotal < 0) {
+    console.log("[v0] Validating costoTotal:", newOrderData.costoTotal, "Type:", typeof newOrderData.costoTotal)
+    if (newOrderData.costoTotal !== undefined && newOrderData.costoTotal !== null && Number(newOrderData.costoTotal) < 0) {
       errors.costoTotal = "El costo total no puede ser negativo"
     }
 
     // Validate hours are positive if provided
-    if (newOrderData.horasTrabajadas !== undefined && newOrderData.horasTrabajadas !== null && newOrderData.horasTrabajadas < 0) {
+    console.log("[v0] Validating horasTrabajadas:", newOrderData.horasTrabajadas, "Type:", typeof newOrderData.horasTrabajadas)
+    if (newOrderData.horasTrabajadas !== undefined && newOrderData.horasTrabajadas !== null && Number(newOrderData.horasTrabajadas) < 0) {
       errors.horasTrabajadas = "Las horas trabajadas no pueden ser negativas"
     }
 
+    console.log("[v0] Validation errors:", errors)
     if (Object.keys(errors).length > 0) {
       setOrderFormErrors(errors)
       return
@@ -2168,6 +2172,17 @@ export default function DashboardPage() {
               <Button
                 onClick={() => {
                   setIsOrderDetailsOpen(false)
+                  // Load order data into form for editing
+                  setNewOrderData({
+                    ...selectedOrder,
+                    fechaCreacion: formatDateForInput(selectedOrder?.fechaCreacion),
+                    fechaInicio: formatDateForInput(selectedOrder?.fechaInicio),
+                    fechaFinalizacion: formatDateForInput(selectedOrder?.fechaFinalizacion),
+                    // Ensure numeric fields are properly typed
+                    costoRepuestos: selectedOrder?.costoRepuestos ? Number(selectedOrder.costoRepuestos) : undefined,
+                    costoTotal: selectedOrder?.costoTotal ? Number(selectedOrder.costoTotal) : undefined,
+                    horasTrabajadas: selectedOrder?.horasTrabajadas ? Number(selectedOrder.horasTrabajadas) : undefined,
+                  })
                   setIsOrderDialogOpen(true)
                 }}
               >
