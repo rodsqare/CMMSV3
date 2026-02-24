@@ -82,7 +82,8 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         return ""
 
       case "nombre_equipo":
-        if (!value || value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres"
+        if (!value || value.trim().length === 0) return "El nombre del equipo es requerido"
+        if (value.trim().length < 3) return "El nombre debe tener al menos 3 caracteres"
         if (value.length > 200) return "El nombre no puede exceder 200 caracteres"
         return ""
 
@@ -124,11 +125,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         return ""
 
       case "estado":
-        if (!value) return "El estado del equipo es obligatorio"
+        if (!value) return "El estado de equipo es requerido"
         return ""
 
       case "criticidad":
-        if (!value) return "El nivel de riesgo es obligatorio"
+        if (!value) return "El nivel de riesgo es requerido"
         return ""
 
       case "proveedor_telefono":
