@@ -213,7 +213,6 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     // Validate required fields
     for (const field of requiredFields) {
       const error = await validateField(field, formData[field as keyof Equipo], equipment?.id)
-      console.log("[v0] Validating field:", field, "value:", formData[field as keyof Equipo], "error:", error)
       if (error) {
         newErrors[field] = error
       }
@@ -238,7 +237,6 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       }
     }
 
-    console.log("[v0] All validation errors:", newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -271,8 +269,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
     const isValid = await validateForm()
     if (!isValid) {
-      console.log("[v0] Validation failed, errors:", errors)
-      scrollToFirstError()
+      console.log("[v0] Validation failed")
+      // Wait for state update before scrolling
+      setTimeout(() => {
+        scrollToFirstError()
+      }, 0)
       return
     }
 
@@ -332,8 +333,16 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
             </Label>
             <Input
               id="codigo_institucional"
+              type="text"
+              inputMode="numeric"
               value={formData.codigo_institucional || ""}
               onChange={(e) => handleChange("codigo_institucional", e.target.value)}
+              onKeyPress={(e) => {
+                // Only allow digits
+                if (!/[0-9]/.test(e.key)) {
+                  e.preventDefault()
+                }
+              }}
               placeholder="Ingrese 12 dígitos"
               maxLength={12}
               className={errors.codigo_institucional ? "border-red-500" : ""}
