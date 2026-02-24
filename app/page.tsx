@@ -1589,16 +1589,7 @@ export default function DashboardPage() {
                       Técnico
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Fecha Inicio
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Fecha Fin
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Costo Total
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Observaciones
+                      Fecha
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Acciones
@@ -1608,13 +1599,13 @@ export default function DashboardPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {isLoadingOrders ? (
                     <tr>
-                      <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                         Cargando órdenes...
                       </td>
                     </tr>
                   ) : paginatedOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                         No se encontraron órdenes de trabajo
                       </td>
                     </tr>
@@ -1669,10 +1660,7 @@ export default function DashboardPage() {
                         <td className="px-4 py-3">
                           {order.tecnicoAsignadoNombre || <span className="text-gray-400 text-sm">Sin asignar</span>}
                         </td>
-                        <td className="px-4 py-3 text-sm">{formatDate(order.fechaInicio)}</td>
-                        <td className="px-4 py-3 text-sm">{formatDate(order.fechaFinalizacion)}</td>
-                        <td className="px-4 py-3 text-sm">${Number(order.costoTotal || 0).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm max-w-xs truncate" title={order.observaciones || ""}>{order.observaciones || "-"}</td>
+                        <td className="px-4 py-3 text-sm">{formatDate(order.fechaCreacion)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {/* CHANGE: Added conditional rendering and colors to icons */}
