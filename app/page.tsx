@@ -1172,42 +1172,8 @@ export default function DashboardPage() {
       errors.descripcion = "La descripción es requerida"
     }
 
-    // Validate dates if provided
-    if (newOrderData.fechaInicio && newOrderData.fechaCreacion) {
-      const fechaCreacion = new Date(newOrderData.fechaCreacion)
-      const fechaInicio = new Date(newOrderData.fechaInicio)
-      if (fechaInicio < fechaCreacion) {
-        errors.fechaInicio = "La fecha de inicio no puede ser anterior a la fecha de creación"
-      }
-    }
-
-    if (newOrderData.fechaInicio && newOrderData.fechaFinalizacion) {
-      const fechaInicio = new Date(newOrderData.fechaInicio)
-      const fechaFinalizacion = new Date(newOrderData.fechaFinalizacion)
-      if (fechaFinalizacion < fechaInicio) {
-        errors.fechaFinalizacion = "La fecha de finalización no puede ser anterior a la fecha de inicio"
-      }
-    }
-
-    // Validate costs are positive if provided
-    console.log("[v0] Validating costoRepuestos:", newOrderData.costoRepuestos, "Type:", typeof newOrderData.costoRepuestos)
-    if (newOrderData.costoRepuestos !== undefined && newOrderData.costoRepuestos !== null && Number(newOrderData.costoRepuestos) < 0) {
-      errors.costoRepuestos = "El costo de repuestos no puede ser negativo"
-    }
-
-    console.log("[v0] Validating costoTotal:", newOrderData.costoTotal, "Type:", typeof newOrderData.costoTotal)
-    if (newOrderData.costoTotal !== undefined && newOrderData.costoTotal !== null && Number(newOrderData.costoTotal) < 0) {
-      errors.costoTotal = "El costo total no puede ser negativo"
-    }
-
-    // Validate hours are positive if provided
-    console.log("[v0] Validating horasTrabajadas:", newOrderData.horasTrabajadas, "Type:", typeof newOrderData.horasTrabajadas)
-    if (newOrderData.horasTrabajadas !== undefined && newOrderData.horasTrabajadas !== null && Number(newOrderData.horasTrabajadas) < 0) {
-      errors.horasTrabajadas = "Las horas trabajadas no pueden ser negativas"
-    }
-
-    console.log("[v0] Validation errors:", errors)
     if (Object.keys(errors).length > 0) {
+      console.log("[v0] handleSaveOrder - Validation errors:", errors)
       setOrderFormErrors(errors)
       return
     }
@@ -1232,6 +1198,7 @@ export default function DashboardPage() {
         costoTotal: newOrderData.costoTotal,
       }
 
+  console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
   const result = await saveOrdenTrabajo(mappedData)
   
   if (result.success && result.data) {
@@ -1261,12 +1228,15 @@ export default function DashboardPage() {
     perPage: orderPerPage,
   }
   const cacheKeyToClear = `ordenes_${JSON.stringify(params)}`
+  console.log("[v0] handleSaveOrder - Clearing cache with key:", cacheKeyToClear)
   clearCache(cacheKeyToClear)
+  console.log("[v0] handleSaveOrder - Cache cleared, calling loadWorkOrders")
   await loadWorkOrders()
   } else {
   throw new Error(result.error || "No se recibió respuesta del servidor")
   }
     } catch (error) {
+      console.error("[v0] handleSaveOrder - Error:", error)
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       setOrderFormErrors({
         general: `Error al guardar la orden: ${errorMessage}`,
@@ -1970,19 +1940,13 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
+                  <Label htmlFor="fechaCreacion">Fecha de Creación *</Label>
                   <Input
-                    id="horasTrabajadas"
-                    type="number"
-                    min="0"
-                    value={newOrderData.horasTrabajadas || ""}
-                    onChange={(e) => {
-                      setNewOrderData({ ...newOrderData, horasTrabajadas: Number(e.target.value) })
-                      setOrderFormErrors({ ...orderFormErrors, horasTrabajadas: "" })
-                    }}
-                    className={orderFormErrors.horasTrabajadas ? "border-red-500" : ""}
+                    id="fechaCreacion"
+                    type="date"
+                    value={newOrderData.fechaCreacion || ""}
+                    onChange={(e) => setNewOrderData({ ...newOrderData, fechaCreacion: e.target.value })}
                   />
-                  {orderFormErrors.horasTrabajadas && <p className="text-red-500 text-xs">{orderFormErrors.horasTrabajadas}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
@@ -1996,34 +1960,13 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
-                  <Input
-                    id="fechaInicio"
-                    type="date"
-                    value={newOrderData.fechaInicio || ""}
-                    onChange={(e) => {
-                      setNewOrderData({ ...newOrderData, fechaInicio: e.target.value })
-                      setOrderFormErrors({ ...orderFormErrors, fechaInicio: "" })
-                    }}
-                    className={orderFormErrors.fechaInicio ? "border-red-500" : ""}
-                  />
-                  {orderFormErrors.fechaInicio && <p className="text-red-500 text-xs">{orderFormErrors.fechaInicio}</p>}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
                   <Label htmlFor="fechaFinalizacion">Fecha de Finalización</Label>
                   <Input
                     id="fechaFinalizacion"
                     type="date"
                     value={newOrderData.fechaFinalizacion || ""}
-                    onChange={(e) => {
-                      setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })
-                      setOrderFormErrors({ ...orderFormErrors, fechaFinalizacion: "" })
-                    }}
-                    className={orderFormErrors.fechaFinalizacion ? "border-red-500" : ""}
+                    onChange={(e) => setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })}
                   />
-                  {orderFormErrors.fechaFinalizacion && <p className="text-red-500 text-xs">{orderFormErrors.fechaFinalizacion}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
@@ -2043,15 +1986,9 @@ export default function DashboardPage() {
                     id="costoRepuestos"
                     type="number"
                     step="0.01"
-                    min="0"
                     value={newOrderData.costoRepuestos || ""}
-                    onChange={(e) => {
-                      setNewOrderData({ ...newOrderData, costoRepuestos: Number(e.target.value) })
-                      setOrderFormErrors({ ...orderFormErrors, costoRepuestos: "" })
-                    }}
-                    className={orderFormErrors.costoRepuestos ? "border-red-500" : ""}
+                    onChange={(e) => setNewOrderData({ ...newOrderData, costoRepuestos: Number(e.target.value) })}
                   />
-                  {orderFormErrors.costoRepuestos && <p className="text-red-500 text-xs">{orderFormErrors.costoRepuestos}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="costoTotal">Costo Total (Bs)</Label>
@@ -2059,15 +1996,9 @@ export default function DashboardPage() {
                     id="costoTotal"
                     type="number"
                     step="0.01"
-                    min="0"
                     value={newOrderData.costoTotal || ""}
-                    onChange={(e) => {
-                      setNewOrderData({ ...newOrderData, costoTotal: Number(e.target.value) })
-                      setOrderFormErrors({ ...orderFormErrors, costoTotal: "" })
-                    }}
-                    className={orderFormErrors.costoTotal ? "border-red-500" : ""}
+                    onChange={(e) => setNewOrderData({ ...newOrderData, costoTotal: Number(e.target.value) })}
                   />
-                  {orderFormErrors.costoTotal && <p className="text-red-500 text-xs">{orderFormErrors.costoTotal}</p>}
                 </div>
               </div>
             </div>
@@ -2089,16 +2020,6 @@ export default function DashboardPage() {
               <DialogTitle>Detalles de la Orden</DialogTitle>
               <DialogDescription id="order-details-desc">{selectedOrder?.numeroOrden}</DialogDescription>
             </DialogHeader>
-            {selectedOrder && (selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0) ||
-              (selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0) ||
-              (selectedOrder.costoTotal && selectedOrder.costoTotal < 0) ? (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Esta orden contiene valores inválidos (negativos). Haz clic en "Editar" para corregirlos.
-                </AlertDescription>
-              </Alert>
-            ) : null}
             {selectedOrder && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -2143,24 +2064,15 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Horas Trabajadas</Label>
-                    <p className={`text-base ${selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0 ? "text-red-600 font-semibold" : ""}`}>
-                      {selectedOrder.horasTrabajadas || "0"}
-                      {selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0 && " ⚠️"}
-                    </p>
+                    <p className="text-base">{selectedOrder.horasTrabajadas || "0"}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Repuestos</Label>
-                    <p className={`text-base ${selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0 ? "text-red-600 font-semibold" : ""}`}>
-                      Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}
-                      {selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0 && " ⚠️"}
-                    </p>
+                    <p className="text-base">Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
-                    <p className={`text-base font-semibold ${selectedOrder.costoTotal && selectedOrder.costoTotal < 0 ? "text-red-600" : ""}`}>
-                      Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}
-                      {selectedOrder.costoTotal && selectedOrder.costoTotal < 0 && " ⚠️"}
-                    </p>
+                    <p className="text-base font-semibold">Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -2168,25 +2080,6 @@ export default function DashboardPage() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsOrderDetailsOpen(false)}>
                 Cerrar
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsOrderDetailsOpen(false)
-                  // Load order data into form for editing
-                  setNewOrderData({
-                    ...selectedOrder,
-                    fechaCreacion: formatDateForInput(selectedOrder?.fechaCreacion),
-                    fechaInicio: formatDateForInput(selectedOrder?.fechaInicio),
-                    fechaFinalizacion: formatDateForInput(selectedOrder?.fechaFinalizacion),
-                    // Ensure numeric fields are properly typed
-                    costoRepuestos: selectedOrder?.costoRepuestos ? Number(selectedOrder.costoRepuestos) : undefined,
-                    costoTotal: selectedOrder?.costoTotal ? Number(selectedOrder.costoTotal) : undefined,
-                    horasTrabajadas: selectedOrder?.horasTrabajadas ? Number(selectedOrder.horasTrabajadas) : undefined,
-                  })
-                  setIsOrderDialogOpen(true)
-                }}
-              >
-                Editar
               </Button>
             </DialogFooter>
           </DialogContent>
