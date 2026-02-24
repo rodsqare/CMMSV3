@@ -6240,6 +6240,17 @@ export default function DashboardPage() {
 
 
   const handleEditEquipment = (equipo: Equipment) => {
+    // Format dates for input fields (YYYY-MM-DD format)
+    const formatDateForInput = (dateString: any) => {
+      if (!dateString) return ""
+      try {
+        const date = new Date(dateString)
+        return date.toISOString().split('T')[0]
+      } catch {
+        return ""
+      }
+    }
+
     // Set the equipment form with all fields from the selected equipment
     setEquipmentForm({
       id: equipo.id,
@@ -6250,13 +6261,13 @@ export default function DashboardPage() {
       ubicacion: equipo.ubicacion || "",
       estado: equipo.estado || "operativo",
       voltaje: equipo.voltaje || "",
-      fechaInstalacion: equipo.fechaInstalacion || "",
+      fechaInstalacion: formatDateForInput(equipo.fechaInstalacion),
       frecuencia: equipo.frecuencia || "",
-      fechaRetiro: equipo.fechaRetiro || "",
+      fechaRetiro: formatDateForInput(equipo.fechaRetiro),
       codigoInstitucional: equipo.codigoInstitucional || "",
       servicio: equipo.servicio || "",
-      vencimientoGarantia: equipo.vencimientoGarantia || "",
-      fechaIngreso: equipo.fechaIngreso || "",
+      vencimientoGarantia: formatDateForInput(equipo.vencimientoGarantia),
+      fechaIngreso: formatDateForInput(equipo.fechaIngreso),
       procedencia: equipo.procedencia || "",
       potencia: equipo.potencia || "",
       corriente: equipo.corriente || "",
@@ -6282,9 +6293,9 @@ export default function DashboardPage() {
             ...prevForm,
             numeroSerie: transformed.numeroSerie || prevForm.numeroSerie,
             codigoInstitucional: transformed.codigoInstitucional || prevForm.codigoInstitucional,
-            fechaIngreso: transformed.fechaIngreso || prevForm.fechaIngreso,
-            vencimientoGarantia: transformed.vencimientoGarantia || prevForm.vencimientoGarantia,
-            fechaInstalacion: transformed.fechaInstalacion || prevForm.fechaInstalacion,
+            fechaIngreso: formatDateForInput(transformed.fechaIngreso) || prevForm.fechaIngreso,
+            vencimientoGarantia: formatDateForInput(transformed.vencimientoGarantia) || prevForm.vencimientoGarantia,
+            fechaInstalacion: formatDateForInput(transformed.fechaInstalacion) || prevForm.fechaInstalacion,
             otrosEspecificaciones: transformed.otrosEspecificaciones || prevForm.otrosEspecificaciones,
             accesoriosConsumibles: transformed.accesoriosConsumibles || prevForm.accesoriosConsumibles,
             estadoEquipo: transformed.estadoEquipo || prevForm.estadoEquipo,
