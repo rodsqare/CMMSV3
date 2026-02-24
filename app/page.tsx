@@ -4998,17 +4998,28 @@ export default function DashboardPage() {
   }
 
   const handleEditMaintenance = (maintenance: Mantenimiento) => {
+    // Format dates for the input (YYYY-MM-DD format)
+    const formatDateForInput = (dateString: any) => {
+      if (!dateString) return ""
+      try {
+        const date = new Date(dateString)
+        return date.toISOString().split('T')[0]
+      } catch {
+        return ""
+      }
+    }
+
     setSelectedMaintenance(maintenance)
     setMaintenanceForm({
-      equipoId: (maintenance as any).equipo_id || (maintenance as any).equipoId,
+      equipoId: maintenance.equipo_id || maintenance.equipoId,
       tipo: maintenance.tipo,
       frecuencia: maintenance.frecuencia,
-      proximaFecha: (maintenance as any).proxima_programada || (maintenance as any).proximaFecha,
-      ultimaFecha: (maintenance as any).ultima_realizacion || (maintenance as any).ultimaFecha,
-      observaciones: (maintenance as any).observaciones || (maintenance as any).descripcion,
+      proximaFecha: formatDateForInput(maintenance.proxima_programada || maintenance.proximaFecha),
+      ultimaFecha: formatDateForInput(maintenance.ultima_realizacion || maintenance.ultimaFecha),
+      observaciones: maintenance.observaciones || maintenance.descripcion,
       descripcion: maintenance.descripcion,
       procedimiento: maintenance.procedimiento,
-      responsableId: (maintenance as any).creado_por || (maintenance as any).responsableId,
+      responsableId: maintenance.creado_por,
     })
     setShowMaintenanceForm(true)
     setMaintenanceFormErrors({})
