@@ -168,14 +168,20 @@ export async function generatePDF(options: {
       margin: { left: 15, right: 15 },
     })
   } else if (tipo === "mantenimientos") {
-    const tableData = data.map((mant) => [
-      mant.equipoNombre || mant.equipo || "-",
-      mant.tipo || "-",
-      mant.frecuencia || "-",
-      formatDate(mant.proximaFecha),
-      mant.estado || mant.resultado || "-",
-      mant.estadoEquipo || "-",
-    ])
+    const tableData = data.map((mant) => {
+      // Get resultado value and capitalize first letter
+      const resultado = mant.resultado || mant.estado || "-"
+      const displayResultado = resultado !== "-" ? resultado.charAt(0).toUpperCase() + resultado.slice(1) : "-"
+      
+      return [
+        mant.equipoNombre || mant.equipo || "-",
+        mant.tipo || "-",
+        mant.frecuencia || "-",
+        formatDate(mant.proximaFecha),
+        displayResultado,
+        mant.estadoEquipo || "-",
+      ]
+    })
     autoTable(doc, {
       startY: yPos,
       head: [["Equipo", "Tipo", "Frecuencia", "Próxima Fecha", "Resultado", "Estado Equipo"]],

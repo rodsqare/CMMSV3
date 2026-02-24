@@ -4878,6 +4878,8 @@ export default function DashboardPage() {
         return "bg-yellow-100 text-yellow-800"
       case "vencido":
         return "bg-red-100 text-red-800"
+      case "próximo":
+        return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -5366,8 +5368,9 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-4 py-2">
                         {(() => {
-                          const status = isOverdue(m.proxima_programada) ? "Vencido" : isUpcoming(m.proxima_programada) ? "Próximo" : "Programado"
-                          return <Badge className={`${getMaintenanceStatusColor(status)}`}>{status}</Badge>
+                          const resultado = m.resultado || (isOverdue(m.proxima_programada) ? "vencido" : isUpcoming(m.proxima_programada) ? "próximo" : "pendiente")
+                          const displayResultado = resultado.charAt(0).toUpperCase() + resultado.slice(1)
+                          return <Badge className={`${getMaintenanceStatusColor(resultado)}`}>{displayResultado}</Badge>
                         })()}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-600 max-w-xs truncate" title={m.observaciones}>
