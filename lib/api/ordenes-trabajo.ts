@@ -28,7 +28,6 @@ export interface OrdenTrabajo {
   horasTrabajadas?: number
   costoRepuestos?: number
   costoTotal?: number
-  observaciones?: string
   createdAt?: string
   updatedAt?: string
 }

@@ -20,7 +20,6 @@ function transformFromDB(record: any): OrdenTrabajo {
     horasTrabajadas: record.tiempo_estimado,
     costoRepuestos: record.costo_estimado ? Number(record.costo_estimado) : undefined,
     costoTotal: record.costo_real ? Number(record.costo_real) : undefined,
-    observaciones: record.observaciones || record.notas,
     createdAt: record.created_at?.toISOString(),
     updatedAt: record.updated_at?.toISOString(),
   }

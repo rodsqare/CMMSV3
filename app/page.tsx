@@ -1196,7 +1196,6 @@ export default function DashboardPage() {
         horasTrabajadas: newOrderData.horasTrabajadas,
         costoRepuestos: newOrderData.costoRepuestos,
         costoTotal: newOrderData.costoTotal,
-        observaciones: newOrderData.observaciones,
       }
 
   console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
@@ -2003,12 +2002,12 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="observaciones">Observaciones</Label>
+                <Label htmlFor="descripcion">Descripción</Label>
                 <Textarea
-                  id="observaciones"
-                  placeholder="Observaciones adicionales..."
-                  value={newOrderData.observaciones || ""}
-                  onChange={(e) => setNewOrderData({ ...newOrderData, observaciones: e.target.value })}
+                  id="descripcion"
+                  placeholder="Descripción de la orden..."
+                  value={newOrderData.descripcion || ""}
+                  onChange={(e) => setNewOrderData({ ...newOrderData, descripcion: e.target.value })}
                   rows={3}
                 />
               </div>
@@ -2088,8 +2087,8 @@ export default function DashboardPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Observaciones</Label>
-                  <p className="text-base mt-1">{selectedOrder.observaciones || "-"}</p>
+                  <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
+                  <p className="text-base mt-1">${Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
                 </div>
               </div>
             )}
