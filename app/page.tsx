@@ -1172,8 +1172,38 @@ export default function DashboardPage() {
       errors.descripcion = "La descripción es requerida"
     }
 
+    // Validate dates if provided
+    if (newOrderData.fechaInicio && newOrderData.fechaCreacion) {
+      const fechaCreacion = new Date(newOrderData.fechaCreacion)
+      const fechaInicio = new Date(newOrderData.fechaInicio)
+      if (fechaInicio < fechaCreacion) {
+        errors.fechaInicio = "La fecha de inicio no puede ser anterior a la fecha de creación"
+      }
+    }
+
+    if (newOrderData.fechaInicio && newOrderData.fechaFinalizacion) {
+      const fechaInicio = new Date(newOrderData.fechaInicio)
+      const fechaFinalizacion = new Date(newOrderData.fechaFinalizacion)
+      if (fechaFinalizacion < fechaInicio) {
+        errors.fechaFinalizacion = "La fecha de finalización no puede ser anterior a la fecha de inicio"
+      }
+    }
+
+    // Validate costs are positive if provided
+    if (newOrderData.costoRepuestos !== undefined && newOrderData.costoRepuestos !== null && newOrderData.costoRepuestos < 0) {
+      errors.costoRepuestos = "El costo de repuestos no puede ser negativo"
+    }
+
+    if (newOrderData.costoTotal !== undefined && newOrderData.costoTotal !== null && newOrderData.costoTotal < 0) {
+      errors.costoTotal = "El costo total no puede ser negativo"
+    }
+
+    // Validate hours are positive if provided
+    if (newOrderData.horasTrabajadas !== undefined && newOrderData.horasTrabajadas !== null && newOrderData.horasTrabajadas < 0) {
+      errors.horasTrabajadas = "Las horas trabajadas no pueden ser negativas"
+    }
+
     if (Object.keys(errors).length > 0) {
-      console.log("[v0] handleSaveOrder - Validation errors:", errors)
       setOrderFormErrors(errors)
       return
     }
@@ -1198,7 +1228,6 @@ export default function DashboardPage() {
         costoTotal: newOrderData.costoTotal,
       }
 
-  console.log("[v0] handleSaveOrder - Mapped data before save:", mappedData)
   const result = await saveOrdenTrabajo(mappedData)
   
   if (result.success && result.data) {
@@ -1228,15 +1257,12 @@ export default function DashboardPage() {
     perPage: orderPerPage,
   }
   const cacheKeyToClear = `ordenes_${JSON.stringify(params)}`
-  console.log("[v0] handleSaveOrder - Clearing cache with key:", cacheKeyToClear)
   clearCache(cacheKeyToClear)
-  console.log("[v0] handleSaveOrder - Cache cleared, calling loadWorkOrders")
   await loadWorkOrders()
   } else {
   throw new Error(result.error || "No se recibió respuesta del servidor")
   }
     } catch (error) {
-      console.error("[v0] handleSaveOrder - Error:", error)
       const errorMessage = error instanceof Error ? error.message : "Error desconocido"
       setOrderFormErrors({
         general: `Error al guardar la orden: ${errorMessage}`,
@@ -1808,6 +1834,11 @@ export default function DashboardPage() {
             )}
 
             <div className="grid gap-4 py-4">
+              {orderFormErrors.general && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-700 text-sm font-medium">{orderFormErrors.general}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="equipoId">Equipo *</Label>
@@ -1940,13 +1971,19 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fechaCreacion">Fecha de Creación *</Label>
+                  <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
                   <Input
-                    id="fechaCreacion"
-                    type="date"
-                    value={newOrderData.fechaCreacion || ""}
-                    onChange={(e) => setNewOrderData({ ...newOrderData, fechaCreacion: e.target.value })}
+                    id="horasTrabajadas"
+                    type="number"
+                    min="0"
+                    value={newOrderData.horasTrabajadas || ""}
+                    onChange={(e) => {
+                      setNewOrderData({ ...newOrderData, horasTrabajadas: Number(e.target.value) })
+                      setOrderFormErrors({ ...orderFormErrors, horasTrabajadas: "" })
+                    }}
+                    className={orderFormErrors.horasTrabajadas ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.horasTrabajadas && <p className="text-red-500 text-xs">{orderFormErrors.horasTrabajadas}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
@@ -1960,13 +1997,34 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="fechaInicio">Fecha de Inicio</Label>
+                  <Input
+                    id="fechaInicio"
+                    type="date"
+                    value={newOrderData.fechaInicio || ""}
+                    onChange={(e) => {
+                      setNewOrderData({ ...newOrderData, fechaInicio: e.target.value })
+                      setOrderFormErrors({ ...orderFormErrors, fechaInicio: "" })
+                    }}
+                    className={orderFormErrors.fechaInicio ? "border-red-500" : ""}
+                  />
+                  {orderFormErrors.fechaInicio && <p className="text-red-500 text-xs">{orderFormErrors.fechaInicio}</p>}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="fechaFinalizacion">Fecha de Finalización</Label>
                   <Input
                     id="fechaFinalizacion"
                     type="date"
                     value={newOrderData.fechaFinalizacion || ""}
-                    onChange={(e) => setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })}
+                    onChange={(e) => {
+                      setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })
+                      setOrderFormErrors({ ...orderFormErrors, fechaFinalizacion: "" })
+                    }}
+                    className={orderFormErrors.fechaFinalizacion ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.fechaFinalizacion && <p className="text-red-500 text-xs">{orderFormErrors.fechaFinalizacion}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
@@ -1986,9 +2044,15 @@ export default function DashboardPage() {
                     id="costoRepuestos"
                     type="number"
                     step="0.01"
+                    min="0"
                     value={newOrderData.costoRepuestos || ""}
-                    onChange={(e) => setNewOrderData({ ...newOrderData, costoRepuestos: Number(e.target.value) })}
+                    onChange={(e) => {
+                      setNewOrderData({ ...newOrderData, costoRepuestos: Number(e.target.value) })
+                      setOrderFormErrors({ ...orderFormErrors, costoRepuestos: "" })
+                    }}
+                    className={orderFormErrors.costoRepuestos ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.costoRepuestos && <p className="text-red-500 text-xs">{orderFormErrors.costoRepuestos}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="costoTotal">Costo Total (Bs)</Label>
@@ -1996,9 +2060,15 @@ export default function DashboardPage() {
                     id="costoTotal"
                     type="number"
                     step="0.01"
+                    min="0"
                     value={newOrderData.costoTotal || ""}
-                    onChange={(e) => setNewOrderData({ ...newOrderData, costoTotal: Number(e.target.value) })}
+                    onChange={(e) => {
+                      setNewOrderData({ ...newOrderData, costoTotal: Number(e.target.value) })
+                      setOrderFormErrors({ ...orderFormErrors, costoTotal: "" })
+                    }}
+                    className={orderFormErrors.costoTotal ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.costoTotal && <p className="text-red-500 text-xs">{orderFormErrors.costoTotal}</p>}
                 </div>
               </div>
             </div>
