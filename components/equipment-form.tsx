@@ -213,6 +213,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     // Validate required fields
     for (const field of requiredFields) {
       const error = await validateField(field, formData[field as keyof Equipo], equipment?.id)
+      console.log("[v0] Validating field:", field, "value:", formData[field as keyof Equipo], "error:", error)
       if (error) {
         newErrors[field] = error
       }
@@ -237,6 +238,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       }
     }
 
+    console.log("[v0] All validation errors:", newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
