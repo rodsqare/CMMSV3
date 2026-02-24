@@ -2001,16 +2001,6 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="descripcion">Descripción</Label>
-                <Textarea
-                  id="descripcion"
-                  placeholder="Descripción de la orden..."
-                  value={newOrderData.descripcion || ""}
-                  onChange={(e) => setNewOrderData({ ...newOrderData, descripcion: e.target.value })}
-                  rows={3}
-                />
-              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsOrderDialogOpen(false)}>
@@ -2055,15 +2045,15 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Creación</Label>
-                    <p className="text-base">{selectedOrder.fechaCreacion}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaCreacion)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Inicio</Label>
-                    <p className="text-base">{selectedOrder.fechaInicio || "-"}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaInicio) || "-"}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Fecha de Finalización</Label>
-                    <p className="text-base">{selectedOrder.fechaFinalizacion || "-"}</p>
+                    <p className="text-base">{formatDate(selectedOrder.fechaFinalizacion) || "-"}</p>
                   </div>
                 </div>
                 <div>
