@@ -1834,11 +1834,6 @@ export default function DashboardPage() {
             )}
 
             <div className="grid gap-4 py-4">
-              {orderFormErrors.general && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-red-700 text-sm font-medium">{orderFormErrors.general}</p>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="equipoId">Equipo *</Label>
@@ -2090,6 +2085,16 @@ export default function DashboardPage() {
               <DialogTitle>Detalles de la Orden</DialogTitle>
               <DialogDescription id="order-details-desc">{selectedOrder?.numeroOrden}</DialogDescription>
             </DialogHeader>
+            {selectedOrder && (selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0) ||
+              (selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0) ||
+              (selectedOrder.costoTotal && selectedOrder.costoTotal < 0) ? (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Esta orden contiene valores inválidos (negativos). Haz clic en "Editar" para corregirlos.
+                </AlertDescription>
+              </Alert>
+            ) : null}
             {selectedOrder && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -2134,15 +2139,24 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Horas Trabajadas</Label>
-                    <p className="text-base">{selectedOrder.horasTrabajadas || "0"}</p>
+                    <p className={`text-base ${selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0 ? "text-red-600 font-semibold" : ""}`}>
+                      {selectedOrder.horasTrabajadas || "0"}
+                      {selectedOrder.horasTrabajadas && selectedOrder.horasTrabajadas < 0 && " ⚠️"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Repuestos</Label>
-                    <p className="text-base">Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}</p>
+                    <p className={`text-base ${selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0 ? "text-red-600 font-semibold" : ""}`}>
+                      Bs {Number(selectedOrder.costoRepuestos || 0).toFixed(2)}
+                      {selectedOrder.costoRepuestos && selectedOrder.costoRepuestos < 0 && " ⚠️"}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Costo Total</Label>
-                    <p className="text-base font-semibold">Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}</p>
+                    <p className={`text-base font-semibold ${selectedOrder.costoTotal && selectedOrder.costoTotal < 0 ? "text-red-600" : ""}`}>
+                      Bs {Number(selectedOrder.costoTotal || 0).toFixed(2)}
+                      {selectedOrder.costoTotal && selectedOrder.costoTotal < 0 && " ⚠️"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2150,6 +2164,14 @@ export default function DashboardPage() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsOrderDetailsOpen(false)}>
                 Cerrar
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsOrderDetailsOpen(false)
+                  setIsOrderDialogOpen(true)
+                }}
+              >
+                Editar
               </Button>
             </DialogFooter>
           </DialogContent>
