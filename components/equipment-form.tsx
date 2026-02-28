@@ -255,11 +255,17 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("[v0] ===== FORM SUBMISSION STARTED =====")
+    console.log("[v0] Current form data:", formData)
+    console.log("[v0] Current errors state:", errors)
 
-    console.log("[v0] Form submission started")
     setGeneralError("")
 
+    console.log("[v0] About to validate form...")
     const isValid = await validateForm()
+    console.log("[v0] Validation result:", isValid)
+    console.log("[v0] Errors after validation:", errors)
+    
     if (!isValid) {
       console.log("[v0] Validation failed, errors:", errors)
       scrollToFirstError()
