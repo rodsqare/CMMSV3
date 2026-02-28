@@ -204,6 +204,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       }
     }
 
+    console.log("[v0] Validation errors:", newErrors)
+    console.log("[v0] Form data:", formData)
+
     // Validate optional fields that have values
     for (const key of Object.keys(formData)) {
       if (!requiredFields.includes(key) && formData[key as keyof Equipo]) {
@@ -238,10 +241,13 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
       // Focus the input after scrolling
       setTimeout(() => {
-        const input = fieldRefs.current[firstErrorField]?.querySelector("input, textarea, select")
+        const input = fieldRefs.current[firstErrorField]?.querySelector("input, textarea, [role='combobox']")
         if (input instanceof HTMLElement) {
           input.focus()
         }
+      }, 100)
+    }
+  }
       }, 300)
     }
   }
