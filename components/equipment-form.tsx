@@ -254,9 +254,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
+    console.error("[v0] FORM SUBMIT TRIGGERED - FIRST LINE")
     e.preventDefault()
-    console.log("[v0] handleSubmit called")
-    console.log("[v0] formData:", formData)
+    console.error("[v0] formData.estado =", formData.estado)
+    console.error("[v0] formData.criticidad =", formData.criticidad)
+    console.error("[v0] formData.numero_serie =", formData.numero_serie)
     
     setGeneralError("")
 
