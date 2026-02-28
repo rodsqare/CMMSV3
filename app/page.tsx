@@ -3033,7 +3033,12 @@ export default function DashboardPage() {
                   id="codigoInstitucional"
                   placeholder="Ej: TX-001"
                   value={equipmentForm.codigoInstitucional || ""}
-                  onChange={(e) => setEquipmentForm({ ...equipmentForm, codigoInstitucional: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 12)
+                    setEquipmentForm({ ...equipmentForm, codigoInstitucional: value })
+                  }}
+                  maxLength={12}
+                  inputMode="numeric"
                 />
               </div>
 
