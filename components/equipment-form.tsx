@@ -255,6 +255,8 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("[v0] handleSubmit called")
+    console.log("[v0] formData:", formData)
     
     setGeneralError("")
 
@@ -263,11 +265,13 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     
     // Check estado
     if (!formData.estado || formData.estado === "") {
+      console.log("[v0] Estado is empty - adding error")
       newErrors.estado = "El estado del equipo es obligatorio"
     }
     
     // Check criticidad
     if (!formData.criticidad || formData.criticidad === "") {
+      console.log("[v0] Criticidad is empty - adding error")
       newErrors.criticidad = "El nivel de riesgo es obligatorio"
     }
 
@@ -302,8 +306,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       newErrors.servicio = "El servicio es obligatorio"
     }
 
+    console.log("[v0] newErrors:", newErrors)
+
     // If there are errors, show them and return
     if (Object.keys(newErrors).length > 0) {
+      console.log("[v0] Setting errors state")
       setErrors(newErrors)
       scrollToFirstError()
       return
