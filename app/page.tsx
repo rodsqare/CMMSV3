@@ -5180,6 +5180,20 @@ export default function DashboardPage() {
     if (!maintenanceForm.proximaFecha) errors.proximaFecha = "La próxima fecha es requerida"
     if (!maintenanceForm.observaciones?.trim()) errors.observaciones = "Las observaciones son requeridas"
 
+    // Validate dates
+    if (maintenanceForm.proximaFecha && maintenanceForm.ultimaFecha) {
+      const proximaFecha = new Date(maintenanceForm.proximaFecha)
+      const ultimaFecha = new Date(maintenanceForm.ultimaFecha)
+      
+      if (ultimaFecha > proximaFecha) {
+        errors.ultimaFecha = "La última fecha debe ser anterior o igual a la próxima fecha"
+      }
+    }
+
+    if (maintenanceForm.ultimaFecha && !maintenanceForm.proximaFecha) {
+      errors.proximaFecha = "La próxima fecha es requerida si se establece una última fecha"
+    }
+
     if (Object.keys(errors).length > 0) {
       setMaintenanceFormErrors(errors)
       return
@@ -5614,13 +5628,20 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ultimaFecha">��ltima Fecha</Label>
+              <Label htmlFor="ultimaFecha">Última Fecha</Label>
               <Input
                 id="ultimaFecha"
                 type="date"
                 value={maintenanceForm.ultimaFecha || ""}
-                onChange={(e) => setMaintenanceForm({ ...maintenanceForm, ultimaFecha: e.target.value })}
+                onChange={(e) => {
+                  setMaintenanceForm({ ...maintenanceForm, ultimaFecha: e.target.value })
+                  setMaintenanceFormErrors({ ...maintenanceFormErrors, ultimaFecha: "" })
+                }}
+                className={maintenanceFormErrors.ultimaFecha ? "border-red-500" : ""}
               />
+              {maintenanceFormErrors.ultimaFecha && (
+                <p className="text-red-500 text-xs">{maintenanceFormErrors.ultimaFecha}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="observaciones">Observaciones</Label>
