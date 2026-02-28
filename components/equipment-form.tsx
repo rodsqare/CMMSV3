@@ -121,11 +121,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         return ""
 
       case "estado":
-        if (!value) return "El estado del equipo es obligatorio"
+        if (!value || value === "") return "El estado del equipo es obligatorio"
         return ""
 
       case "criticidad":
-        if (!value) return "El nivel de riesgo es obligatorio"
+        if (!value || value === "") return "El nivel de riesgo es obligatorio"
         return ""
 
       case "proveedor_telefono":
