@@ -3271,9 +3271,6 @@ export default function DashboardPage() {
                   <p className="text-red-500 text-xs">{equipmentFormErrors.nivelRiesgo}</p>
                 )}
               </div>
-                  </SelectContent>
-                </Select>
-              </div>
 
               {/* CHANGE: Updated manual checkboxes */}
               <div className="space-y-2">
