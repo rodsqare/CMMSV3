@@ -3247,6 +3247,9 @@ export default function DashboardPage() {
                     <SelectItem value="no_operable">No Operable</SelectItem>
                   </SelectContent>
                 </Select>
+                {equipmentFormErrors.estadoEquipo && (
+                  <p className="text-red-500 text-xs">{equipmentFormErrors.estadoEquipo}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -3262,6 +3265,12 @@ export default function DashboardPage() {
                     <SelectItem value="alto">Alto</SelectItem>
                     <SelectItem value="medio">Medio</SelectItem>
                     <SelectItem value="bajo">Bajo</SelectItem>
+                  </SelectContent>
+                </Select>
+                {equipmentFormErrors.nivelRiesgo && (
+                  <p className="text-red-500 text-xs">{equipmentFormErrors.nivelRiesgo}</p>
+                )}
+              </div>
                   </SelectContent>
                 </Select>
               </div>
