@@ -182,7 +182,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   }
 
   // Validate all required fields
-  const validateForm = async (): Promise<boolean> => {
+  const validateForm = async (): Promise<{ isValid: boolean; errors: ValidationErrors }> => {
     const newErrors: ValidationErrors = {}
     const requiredFields = [
       "codigo_institucional",
@@ -227,7 +227,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
   }
 
   // Scroll to first error field
@@ -257,17 +257,15 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     e.preventDefault()
     console.log("[v0] ===== FORM SUBMISSION STARTED =====")
     console.log("[v0] Current form data:", formData)
-    console.log("[v0] Current errors state:", errors)
 
     setGeneralError("")
 
     console.log("[v0] About to validate form...")
-    const isValid = await validateForm()
-    console.log("[v0] Validation result:", isValid)
-    console.log("[v0] Errors after validation:", errors)
+    const validationResult = await validateForm()
+    console.log("[v0] Validation result:", validationResult)
     
-    if (!isValid) {
-      console.log("[v0] Validation failed, errors:", errors)
+    if (!validationResult.isValid) {
+      console.log("[v0] Validation failed, errors:", validationResult.errors)
       scrollToFirstError()
       return
     }
