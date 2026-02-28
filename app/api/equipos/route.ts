@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         usuario_id: session.id,
         accion: 'Crear',
         modulo: 'Equipos',
-        descripcion: `Equipo creado: ${equipo.nombre}`,
+        descripcion: `Equipo creado: ${equipo.nombre} (Código: ${equipo.codigo})`,
         datos: { equipo_id: equipo.id },
       },
     })

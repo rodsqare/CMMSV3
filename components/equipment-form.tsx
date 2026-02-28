@@ -49,9 +49,6 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         setFormData(equipment)
       } else {
         setFormData({
-          estado: "operativo",
-          estado_equipo: "operativo",
-          nivel_riesgo: "medio",
           manual_usuario: false,
           manual_servicio: false,
         })
@@ -124,11 +121,11 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         return ""
 
       case "estado":
-        if (!value) return "El estado del equipo es obligatorio"
+        if (!value || value === "") return "El estado del equipo es obligatorio"
         return ""
 
       case "criticidad":
-        if (!value) return "El nivel de riesgo es obligatorio"
+        if (!value || value === "") return "El nivel de riesgo es obligatorio"
         return ""
 
       case "proveedor_telefono":
@@ -185,7 +182,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
   }
 
   // Validate all required fields
-  const validateForm = async (): Promise<boolean> => {
+  const validateForm = async (): Promise<{ isValid: boolean; errors: ValidationErrors }> => {
     const newErrors: ValidationErrors = {}
     const requiredFields = [
       "codigo_institucional",
@@ -207,6 +204,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       }
     }
 
+    console.log("[v0] Validation errors:", newErrors)
+    console.log("[v0] Form data:", formData)
+
     // Validate optional fields that have values
     for (const key of Object.keys(formData)) {
       if (!requiredFields.includes(key) && formData[key as keyof Equipo]) {
@@ -227,7 +227,7 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
   }
 
   // Scroll to first error field
@@ -241,24 +241,79 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
 
       // Focus the input after scrolling
       setTimeout(() => {
-        const input = fieldRefs.current[firstErrorField]?.querySelector("input, textarea, select")
+        const input = fieldRefs.current[firstErrorField]?.querySelector("input, textarea, [role='combobox']")
         if (input instanceof HTMLElement) {
           input.focus()
         }
+      }, 100)
+    }
+  }
       }, 300)
     }
   }
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
+    console.error("[v0] FORM SUBMIT TRIGGERED - FIRST LINE")
     e.preventDefault()
-
-    console.log("[v0] Form submission started")
+    console.error("[v0] formData.estado =", formData.estado)
+    console.error("[v0] formData.criticidad =", formData.criticidad)
+    console.error("[v0] formData.numero_serie =", formData.numero_serie)
+    
     setGeneralError("")
 
-    const isValid = await validateForm()
-    if (!isValid) {
-      console.log("[v0] Validation failed, errors:", errors)
+    // Validate required fields directly
+    const newErrors: ValidationErrors = {}
+    
+    // Check estado
+    if (!formData.estado || formData.estado === "") {
+      console.log("[v0] Estado is empty - adding error")
+      newErrors.estado = "El estado del equipo es obligatorio"
+    }
+    
+    // Check criticidad
+    if (!formData.criticidad || formData.criticidad === "") {
+      console.log("[v0] Criticidad is empty - adding error")
+      newErrors.criticidad = "El nivel de riesgo es obligatorio"
+    }
+
+    // Check other required fields
+    if (!formData.codigo_institucional) {
+      newErrors.codigo_institucional = "El código institucional es obligatorio"
+    } else if (String(formData.codigo_institucional).length !== 12) {
+      newErrors.codigo_institucional = "Debe tener 12 dígitos"
+    }
+
+    if (!formData.nombre_equipo) {
+      newErrors.nombre_equipo = "El nombre del equipo es obligatorio"
+    }
+
+    if (!formData.fabricante) {
+      newErrors.fabricante = "El fabricante es obligatorio"
+    }
+
+    if (!formData.modelo) {
+      newErrors.modelo = "El modelo es obligatorio"
+    }
+
+    if (!formData.numero_serie) {
+      newErrors.numero_serie = "El número de serie es obligatorio"
+    }
+
+    if (!formData.ubicacion) {
+      newErrors.ubicacion = "La ubicación es obligatoria"
+    }
+
+    if (!formData.servicio) {
+      newErrors.servicio = "El servicio es obligatorio"
+    }
+
+    console.log("[v0] newErrors:", newErrors)
+
+    // If there are errors, show them and return
+    if (Object.keys(newErrors).length > 0) {
+      console.log("[v0] Setting errors state")
+      setErrors(newErrors)
       scrollToFirstError()
       return
     }
@@ -269,12 +324,9 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       const result = await saveEquipo(formData as Equipo, userId)
 
       if (result.success) {
-        console.log("[v0] Equipment saved successfully")
         onSuccess()
         onOpenChange(false)
       } else {
-        console.log("[v0] Save failed:", result.error)
-
         // Parse backend validation errors
         if (result.error && result.error.includes("código institucional")) {
           setErrors({ codigo_institucional: result.error })

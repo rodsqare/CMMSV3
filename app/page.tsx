@@ -766,8 +766,10 @@ export default function DashboardPage() {
   const loadAuditLogs = async () => {
     try {
       setLogsLoading(true)
+      console.log("[v0] loadAuditLogs - Calling fetchAuditLogs with:", { search: debouncedSearchTerm, action: logActionFilter })
       
       const result = await fetchAuditLogs(debouncedSearchTerm, logActionFilter, 1000)
+      console.log("[v0] loadAuditLogs - Response:", result)
       
       // Extract logs data from response
       let logsData: any[] = []
@@ -780,6 +782,7 @@ export default function DashboardPage() {
         logsData = result
       }
       
+      console.log("[v0] loadAuditLogs - Loaded logs count:", logsData.length)
       setAuditLogs(logsData)
       setLogCurrentPage(1) // Reset to first page when filters change
     } catch (error) {
@@ -1174,6 +1177,24 @@ export default function DashboardPage() {
     }
     if (!newOrderData.descripcion?.trim()) {
       errors.descripcion = "La descripción es requerida"
+    }
+
+    // Validate dates
+    if (newOrderData.fechaInicio && newOrderData.fechaFinalizacion) {
+      const fechaInicio = new Date(newOrderData.fechaInicio)
+      const fechaFinalizacion = new Date(newOrderData.fechaFinalizacion)
+      
+      if (fechaFinalizacion < fechaInicio) {
+        errors.fechaFinalizacion = "La fecha de finalización debe ser posterior a la fecha de inicio"
+      }
+    }
+
+    if (newOrderData.fechaInicio && !newOrderData.fechaFinalizacion) {
+      errors.fechaFinalizacion = "La fecha de finalización es requerida si se establece una fecha de inicio"
+    }
+
+    if (newOrderData.fechaFinalizacion && !newOrderData.fechaInicio) {
+      errors.fechaInicio = "La fecha de inicio es requerida si se establece una fecha de finalización"
     }
 
     if (Object.keys(errors).length > 0) {
@@ -1959,7 +1980,11 @@ export default function DashboardPage() {
                     type="date"
                     value={newOrderData.fechaInicio || ""}
                     onChange={(e) => setNewOrderData({ ...newOrderData, fechaInicio: e.target.value })}
+                    className={orderFormErrors.fechaInicio ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.fechaInicio && (
+                    <p className="text-red-500 text-xs">{orderFormErrors.fechaInicio}</p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1970,7 +1995,11 @@ export default function DashboardPage() {
                     type="date"
                     value={newOrderData.fechaFinalizacion || ""}
                     onChange={(e) => setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })}
+                    className={orderFormErrors.fechaFinalizacion ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.fechaFinalizacion && (
+                    <p className="text-red-500 text-xs">{orderFormErrors.fechaFinalizacion}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
@@ -3033,7 +3062,12 @@ export default function DashboardPage() {
                   id="codigoInstitucional"
                   placeholder="Ej: TX-001"
                   value={equipmentForm.codigoInstitucional || ""}
-                  onChange={(e) => setEquipmentForm({ ...equipmentForm, codigoInstitucional: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 12)
+                    setEquipmentForm({ ...equipmentForm, codigoInstitucional: value })
+                  }}
+                  maxLength={12}
+                  inputMode="numeric"
                 />
               </div>
 
@@ -3247,6 +3281,9 @@ export default function DashboardPage() {
                     <SelectItem value="no_operable">No Operable</SelectItem>
                   </SelectContent>
                 </Select>
+                {equipmentFormErrors.estadoEquipo && (
+                  <p className="text-red-500 text-xs">{equipmentFormErrors.estadoEquipo}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -3264,6 +3301,9 @@ export default function DashboardPage() {
                     <SelectItem value="bajo">Bajo</SelectItem>
                   </SelectContent>
                 </Select>
+                {equipmentFormErrors.nivelRiesgo && (
+                  <p className="text-red-500 text-xs">{equipmentFormErrors.nivelRiesgo}</p>
+                )}
               </div>
 
               {/* CHANGE: Updated manual checkboxes */}
@@ -5143,6 +5183,20 @@ export default function DashboardPage() {
     if (!maintenanceForm.proximaFecha) errors.proximaFecha = "La próxima fecha es requerida"
     if (!maintenanceForm.observaciones?.trim()) errors.observaciones = "Las observaciones son requeridas"
 
+    // Validate dates
+    if (maintenanceForm.proximaFecha && maintenanceForm.ultimaFecha) {
+      const proximaFecha = new Date(maintenanceForm.proximaFecha)
+      const ultimaFecha = new Date(maintenanceForm.ultimaFecha)
+      
+      if (ultimaFecha > proximaFecha) {
+        errors.ultimaFecha = "La última fecha debe ser anterior o igual a la próxima fecha"
+      }
+    }
+
+    if (maintenanceForm.ultimaFecha && !maintenanceForm.proximaFecha) {
+      errors.proximaFecha = "La próxima fecha es requerida si se establece una última fecha"
+    }
+
     if (Object.keys(errors).length > 0) {
       setMaintenanceFormErrors(errors)
       return
@@ -5577,13 +5631,20 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ultimaFecha">��ltima Fecha</Label>
+              <Label htmlFor="ultimaFecha">Última Fecha</Label>
               <Input
                 id="ultimaFecha"
                 type="date"
                 value={maintenanceForm.ultimaFecha || ""}
-                onChange={(e) => setMaintenanceForm({ ...maintenanceForm, ultimaFecha: e.target.value })}
+                onChange={(e) => {
+                  setMaintenanceForm({ ...maintenanceForm, ultimaFecha: e.target.value })
+                  setMaintenanceFormErrors({ ...maintenanceFormErrors, ultimaFecha: "" })
+                }}
+                className={maintenanceFormErrors.ultimaFecha ? "border-red-500" : ""}
               />
+              {maintenanceFormErrors.ultimaFecha && (
+                <p className="text-red-500 text-xs">{maintenanceFormErrors.ultimaFecha}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="observaciones">Observaciones</Label>

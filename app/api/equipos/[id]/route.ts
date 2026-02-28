@@ -139,7 +139,7 @@ export async function PUT(
         usuario_id: session.id,
         accion: 'Editar',
         modulo: 'Equipos',
-        descripcion: `Equipo actualizado: ${equipo.nombre}`,
+        descripcion: `Equipo actualizado: ${equipo.nombre} (Código: ${equipo.codigo})`,
         datos: { equipo_id: equipo.id },
       },
     })
@@ -184,7 +184,7 @@ export async function DELETE(
         usuario_id: session.id,
         accion: 'Eliminar',
         modulo: 'Equipos',
-        descripcion: `Equipo eliminado: ${equipo.nombre}`,
+        descripcion: `Equipo eliminado: ${equipo.nombre} (Código: ${equipo.codigo})`,
         datos: { equipo_id: equipo.id },
       },
     })
