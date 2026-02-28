@@ -766,8 +766,10 @@ export default function DashboardPage() {
   const loadAuditLogs = async () => {
     try {
       setLogsLoading(true)
+      console.log("[v0] loadAuditLogs - Calling fetchAuditLogs with:", { search: debouncedSearchTerm, action: logActionFilter })
       
       const result = await fetchAuditLogs(debouncedSearchTerm, logActionFilter, 1000)
+      console.log("[v0] loadAuditLogs - Response:", result)
       
       // Extract logs data from response
       let logsData: any[] = []
@@ -780,6 +782,7 @@ export default function DashboardPage() {
         logsData = result
       }
       
+      console.log("[v0] loadAuditLogs - Loaded logs count:", logsData.length)
       setAuditLogs(logsData)
       setLogCurrentPage(1) // Reset to first page when filters change
     } catch (error) {

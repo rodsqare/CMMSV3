@@ -14,9 +14,9 @@ export async function fetchAuditLogs(search?: string, action?: string, perPage =
     // Apply search filter - searches in description, module, and user name
     if (search && search.trim() !== "") {
       where.OR = [
-        { descripcion: { contains: search, mode: 'insensitive' } },
-        { modulo: { contains: search, mode: 'insensitive' } },
-        { usuario: { nombre: { contains: search, mode: 'insensitive' } } }
+        { descripcion: { contains: search } },
+        { modulo: { contains: search } },
+        { usuario: { nombre: { contains: search } } }
       ]
     }
 
