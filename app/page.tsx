@@ -1176,6 +1176,24 @@ export default function DashboardPage() {
       errors.descripcion = "La descripción es requerida"
     }
 
+    // Validate dates
+    if (newOrderData.fechaInicio && newOrderData.fechaFinalizacion) {
+      const fechaInicio = new Date(newOrderData.fechaInicio)
+      const fechaFinalizacion = new Date(newOrderData.fechaFinalizacion)
+      
+      if (fechaFinalizacion < fechaInicio) {
+        errors.fechaFinalizacion = "La fecha de finalización debe ser posterior a la fecha de inicio"
+      }
+    }
+
+    if (newOrderData.fechaInicio && !newOrderData.fechaFinalizacion) {
+      errors.fechaFinalizacion = "La fecha de finalización es requerida si se establece una fecha de inicio"
+    }
+
+    if (newOrderData.fechaFinalizacion && !newOrderData.fechaInicio) {
+      errors.fechaInicio = "La fecha de inicio es requerida si se establece una fecha de finalización"
+    }
+
     if (Object.keys(errors).length > 0) {
       console.log("[v0] handleSaveOrder - Validation errors:", errors)
       setOrderFormErrors(errors)
@@ -1959,7 +1977,11 @@ export default function DashboardPage() {
                     type="date"
                     value={newOrderData.fechaInicio || ""}
                     onChange={(e) => setNewOrderData({ ...newOrderData, fechaInicio: e.target.value })}
+                    className={orderFormErrors.fechaInicio ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.fechaInicio && (
+                    <p className="text-red-500 text-xs">{orderFormErrors.fechaInicio}</p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1970,7 +1992,11 @@ export default function DashboardPage() {
                     type="date"
                     value={newOrderData.fechaFinalizacion || ""}
                     onChange={(e) => setNewOrderData({ ...newOrderData, fechaFinalizacion: e.target.value })}
+                    className={orderFormErrors.fechaFinalizacion ? "border-red-500" : ""}
                   />
+                  {orderFormErrors.fechaFinalizacion && (
+                    <p className="text-red-500 text-xs">{orderFormErrors.fechaFinalizacion}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="horasTrabajadas">Horas Trabajadas</Label>
