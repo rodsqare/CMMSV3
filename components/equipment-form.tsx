@@ -49,9 +49,6 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
         setFormData(equipment)
       } else {
         setFormData({
-          estado: "operativo",
-          estado_equipo: "operativo",
-          nivel_riesgo: "medio",
           manual_usuario: false,
           manual_servicio: false,
         })
