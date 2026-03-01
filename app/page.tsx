@@ -2796,19 +2796,48 @@ export default function DashboardPage() {
       formData.append("archivo", file)
       formData.append("subido_por_id", userId)
       
+      const headers: Record<string, string> = {
+        "X-User-ID": userId,
+      }
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+      
+      console.log("[v0] handleFileUpload - uploading file:", file.name, "for equipment:", selectedEquipment.id)
+      
       const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
         method: "POST",
         credentials: "include",
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        headers,
         body: formData,
       })
       
-      if (!response.ok) throw new Error("Error uploading file")
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error("[v0] handleFileUpload - Error response:", response.status, errorData)
+        throw new Error(errorData || "Error uploading file")
+      }
+      
+      const result = await response.json()
+      console.log("[v0] handleFileUpload - Upload successful:", result)
       
       toast({ title: "Éxito", description: `${file.name} subido correctamente` })
       
-      // Reload the page to refresh equipment data
-      setTimeout(() => window.location.reload(), 500)
+      // Refresh equipment details to show new document
+      if (selectedEquipment?.id) {
+        try {
+          const docsResponse = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
+            credentials: "include",
+            headers: { "X-User-ID": userId, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+          })
+          if (docsResponse.ok) {
+            const docs = await docsResponse.json()
+            setSelectedEquipment((prev: any) => prev ? { ...prev, documentos: docs } : prev)
+          }
+        } catch (refreshError) {
+          console.error("[v0] handleFileUpload - Error refreshing docs:", refreshError)
+        }
+      }
     } catch (error) {
       console.error("[v0] Upload error:", error)
       toast({ variant: "destructive", title: "Error", description: "Error al subir documento" })
