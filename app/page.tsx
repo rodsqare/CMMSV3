@@ -3825,9 +3825,16 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
                   <Button
-                    onClick={() => {
-                      console.error("[v0] Upload button clicked")
-                      document.getElementById("fileInput")?.click()
+                    onClick={(e) => {
+                      console.error("[v0] === BUTTON CLICK DETECTED ===")
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const input = document.getElementById("fileInput") as HTMLInputElement
+                      console.error("[v0] Input element found:", input ? "YES" : "NO")
+                      if (input) {
+                        console.error("[v0] Triggering click on input")
+                        input.click()
+                      }
                     }}
                     size="sm"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
