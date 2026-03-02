@@ -42,14 +42,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[v0] POST /documentos - Starting upload')
-    console.log('[v0] POST /documentos - Headers:', Object.fromEntries(request.headers.entries()))
+    console.error('[v0] POST /documentos - === STARTING DOCUMENT UPLOAD ===')
     
     const session = await requireAuth(request)
-    console.log('[v0] POST /documentos - Session authenticated:', session.email)
+    console.error('[v0] POST /documentos - Auth successful for user:', session.id, session.email)
     
     const { id } = await params
     const equipoId = parseInt(id)
+    console.error('[v0] POST /documentos - Equipment ID:', equipoId)
 
     // Verificar que el equipo existe
     const equipo = await prisma.equipo.findUnique({
@@ -57,24 +57,31 @@ export async function POST(
     })
 
     if (!equipo) {
-      console.log('[v0] POST /documentos - Equipment not found:', equipoId)
+      console.error('[v0] POST /documentos - Equipment not found:', equipoId)
       return NextResponse.json(
         { error: 'Equipo no encontrado' },
         { status: 404 }
       )
     }
 
+    console.error('[v0] POST /documentos - Equipment found:', equipo.nombre)
+
     // Obtener el FormData
     const formData = await request.formData()
     const archivo = formData.get('archivo') as File
     const subidoPorId = formData.get('subido_por_id') as string
 
-    console.log('[v0] POST /documentos - FormData received')
-    console.log('[v0] POST /documentos - archivo:', archivo ? `${archivo.name} (${archivo.size} bytes)` : 'NOT PROVIDED')
-    console.log('[v0] POST /documentos - subidoPorId:', subidoPorId)
+    console.error('[v0] POST /documentos - FormData entries:')
+    for (const [key, value] of formData.entries()) {
+      if (key === 'archivo' && value instanceof File) {
+        console.error(`  - ${key}: File(${value.name}, ${value.size} bytes)`)
+      } else {
+        console.error(`  - ${key}: ${value}`)
+      }
+    }
 
     if (!archivo) {
-      console.log('[v0] POST /documentos - Error: No file provided')
+      console.error('[v0] POST /documentos - Error: No file provided')
       return NextResponse.json(
         { error: 'No se proporciono archivo' },
         { status: 400 }
@@ -82,17 +89,19 @@ export async function POST(
     }
 
     if (!subidoPorId) {
-      console.log('[v0] POST /documentos - Error: No subidoPorId provided')
+      console.error('[v0] POST /documentos - Error: No subidoPorId provided')
       return NextResponse.json(
         { error: 'No se proporciono el ID del usuario que sube' },
         { status: 400 }
       )
     }
 
+    console.error('[v0] POST /documentos - File validation passed:', archivo.name, archivo.size)
+
     // Validar que el archivo no sea muy grande (máximo 50MB)
     const maxSize = 50 * 1024 * 1024
     if (archivo.size > maxSize) {
-      console.log('[v0] POST /documentos - File too large:', archivo.size)
+      console.error('[v0] POST /documentos - File too large:', archivo.size)
       return NextResponse.json(
         { error: 'El archivo es demasiado grande. Máximo 50MB' },
         { status: 400 }
@@ -100,6 +109,7 @@ export async function POST(
     }
 
     // Crear documento en la base de datos
+    console.error('[v0] POST /documentos - Creating document in database...')
     const documento = await prisma.documento.create({
       data: {
         nombre: archivo.name,
@@ -121,7 +131,7 @@ export async function POST(
       },
     })
 
-    console.log('[v0] POST /documentos - Document created successfully:', documento.id)
+    console.error('[v0] POST /documentos - Document created successfully:', documento.id, documento.nombre)
 
     // Crear log
     await prisma.log.create({
@@ -129,14 +139,17 @@ export async function POST(
         usuario_id: session.id,
         accion: 'Subir',
         modulo: 'Documentos',
-        descripcion: `Documento subido: ${archivo.name} para equipo ${equipo.nombre}`,
+        descripcion: `Documento subido: ${archivo.name} para equipo ${equipo.nombre} (Código: ${equipo.codigo})`,
         datos: { documento_id: documento.id, equipo_id: equipoId },
       },
     })
 
-    return NextResponse.json({ data: documento }, { status: 201 })
+    console.error('[v0] POST /documentos - === UPLOAD COMPLETED SUCCESSFULLY ===')
+    return NextResponse.json(documento, { status: 201 })
   } catch (error: any) {
-    console.error('[v0] Error uploading documento:', error)
+    console.error('[v0] POST /documentos - ERROR:', error)
+    console.error('[v0] POST /documentos - Error message:', error.message)
+    console.error('[v0] POST /documentos - Error stack:', error.stack)
     return NextResponse.json(
       { error: error.message || 'Error al subir documento' },
       { status: error.message === 'No autorizado' ? 401 : 500 }

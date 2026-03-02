@@ -2785,7 +2785,10 @@ export default function DashboardPage() {
   // CHANGE: Simplified handleFileUpload - remove complex dependencies
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !selectedEquipment?.id) return
+    if (!file || !selectedEquipment?.id) {
+      console.error("[v0] handleFileUpload - File or equipment missing")
+      return
+    }
 
     try {
       setEquipmentLoading(true)
@@ -2796,21 +2799,48 @@ export default function DashboardPage() {
       formData.append("archivo", file)
       formData.append("subido_por_id", userId)
       
+      const headers: Record<string, string> = {
+        "X-User-ID": userId,
+      }
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+      
+      console.error("[v0] handleFileUpload - Starting upload:", {
+        fileName: file.name,
+        fileSize: file.size,
+        equipmentId: selectedEquipment.id,
+        userId: userId,
+      })
+      
       const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
         method: "POST",
         credentials: "include",
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        headers,
         body: formData,
       })
       
-      if (!response.ok) throw new Error("Error uploading file")
+      console.error("[v0] handleFileUpload - Response status:", response.status)
+      
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error("[v0] handleFileUpload - Error response:", response.status, errorData)
+        throw new Error(errorData || "Error uploading file")
+      }
+      
+      const result = await response.json()
+      console.error("[v0] handleFileUpload - Upload successful, result:", result)
       
       toast({ title: "Éxito", description: `${file.name} subido correctamente` })
       
-      // Reload the page to refresh equipment data
-      setTimeout(() => window.location.reload(), 500)
+      // Refresh equipment details to show new document
+      // Use handleViewEquipmentDetails to reload with proper transformation
+      if (selectedEquipment?.id) {
+        console.error("[v0] handleFileUpload - Reloading equipment details...")
+        await handleViewEquipmentDetails(selectedEquipment)
+      }
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("[v0] handleFileUpload - Upload error:", error)
       toast({ variant: "destructive", title: "Error", description: "Error al subir documento" })
     } finally {
       setEquipmentLoading(false)
@@ -3794,19 +3824,30 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <label 
-                    htmlFor="fileInput"
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer"
+                  <Button
+                    onClick={(e) => {
+                      console.error("[v0] === BUTTON CLICK DETECTED ===")
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const input = document.getElementById("fileInput") as HTMLInputElement
+                      console.error("[v0] Input element found:", input ? "YES" : "NO")
+                      if (input) {
+                        console.error("[v0] Triggering click on input")
+                        input.click()
+                      }
+                    }}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Subir Archivo
-                  </label>
+                  </Button>
                   <input
                     id="fileInput"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.csv"
                     onChange={(e) => {
-                      console.log("[v0] File input onChange triggered", e.target.files?.length)
+                      console.error("[v0] File input onChange triggered", e.target.files?.length)
                       handleFileUpload(e)
                     }}
                     className="hidden"
