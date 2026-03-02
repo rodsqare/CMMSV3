@@ -4314,23 +4314,23 @@ export default function DashboardPage() {
                 />
                 {userFormErrors.email && <p className="text-red-500 text-xs">{userFormErrors.email}</p>}
               </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="contrasena">
-                  {editingUser ? "Contraseña (opcional - dejar en blanco para mantener la actual)" : "Contraseña *"}
-                </Label>
-                <Input
-                  id="contrasena"
-                  type="password"
-                  value={newUser.contrasena || ""}
-                  onChange={(e) => {
-                    setNewUser({ ...newUser, contrasena: e.target.value })
-                    setUserFormErrors({ ...userFormErrors, contrasena: "" })
-                  }}
-                  placeholder={editingUser ? "Dejar en blanco para mantener actual" : "Mínimo 6 caracteres"}
-                  required={!editingUser}
-                />
-                {userFormErrors.contrasena && <p className="text-red-500 text-xs">{userFormErrors.contrasena}</p>}
-              </div>
+              {!editingUser && (
+                <div className="md:col-span-2">
+                  <Label htmlFor="contrasena">Contraseña *</Label>
+                  <Input
+                    id="contrasena"
+                    type="password"
+                    value={newUser.contrasena || ""}
+                    onChange={(e) => {
+                      setNewUser({ ...newUser, contrasena: e.target.value })
+                      setUserFormErrors({ ...userFormErrors, contrasena: "" })
+                    }}
+                    placeholder="Mínimo 6 caracteres"
+                    required={!editingUser}
+                  />
+                  {userFormErrors.contrasena && <p className="text-red-500 text-xs">{userFormErrors.contrasena}</p>}
+                </div>
+              )}
               <div>
                 <Label htmlFor="rol">Rol *</Label>
                 <Select
