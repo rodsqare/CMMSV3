@@ -3824,34 +3824,18 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <Button
-                    onClick={(e) => {
-                      console.error("[v0] === BUTTON CLICK DETECTED ===")
-                      e.preventDefault()
-                      e.stopPropagation()
-                      const input = document.getElementById("fileInput") as HTMLInputElement
-                      console.error("[v0] Input element found:", input ? "YES" : "NO")
-                      if (input) {
-                        console.error("[v0] Triggering click on input")
-                        input.click()
-                      }
-                    }}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  <label 
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md cursor-pointer transition"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    Subir Archivo
-                  </Button>
-                  <input
-                    id="fileInput"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.csv"
-                    onChange={(e) => {
-                      console.error("[v0] File input onChange triggered", e.target.files?.length)
-                      handleFileUpload(e)
-                    }}
-                    className="hidden"
-                  />
+                    Subir Imagen
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
                 <div className="space-y-2">
                   {(selectedEquipment.documentos || []).length > 0 ? (
