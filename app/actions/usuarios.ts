@@ -352,30 +352,31 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
   }
 }
 
-export async function removeUsuario(id: number): Promise<{
+export async function removeUsuario(id: number, currentUserId?: number): Promise<{
   success: boolean
   error?: string
 }> {
   try {
-    console.log("[v0] removeUsuario: Attempting to delete usuario with id:", id)
+    // Prevent user from deleting themselves
+    if (currentUserId && id === currentUserId) {
+      return {
+        success: false,
+        error: "No puedes eliminar tu propia cuenta",
+      }
+    }
     
     const usuario = await prisma.usuario.findUnique({ where: { id } })
     
     if (!usuario) {
-      console.log("[v0] removeUsuario: Usuario not found with id:", id)
       return {
         success: false,
         error: "El usuario no existe",
       }
     }
     
-    console.log("[v0] removeUsuario: Found usuario:", usuario.nombre, "- Deleting...")
-    
     await prisma.usuario.delete({
       where: { id }
     })
-    
-    console.log("[v0] removeUsuario: Usuario deleted successfully")
     
     // Log the deletion
     await createAuditLog({
@@ -387,7 +388,7 @@ export async function removeUsuario(id: number): Promise<{
     
     return { success: true }
   } catch (error: any) {
-    console.error("[v0] Error removing usuario:", error.message, error.code)
+    console.error("[v0] Error removing usuario:", error.message)
     return {
       success: false,
       error: error.message || "Error al eliminar el usuario",
