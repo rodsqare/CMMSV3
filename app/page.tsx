@@ -3824,19 +3824,23 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <label 
-                    htmlFor="fileInput"
-                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer"
+                  <Button
+                    onClick={() => {
+                      console.error("[v0] Upload button clicked")
+                      document.getElementById("fileInput")?.click()
+                    }}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Subir Archivo
-                  </label>
+                  </Button>
                   <input
                     id="fileInput"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.csv"
                     onChange={(e) => {
-                      console.log("[v0] File input onChange triggered", e.target.files?.length)
+                      console.error("[v0] File input onChange triggered", e.target.files?.length)
                       handleFileUpload(e)
                     }}
                     className="hidden"
