@@ -2786,9 +2786,52 @@ export default function DashboardPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedEquipment?.id) {
-      console.error("[v0] handleFileUpload - File or equipment missing")
       return
     }
+
+    try {
+      setEquipmentLoading(true)
+      const userId = localStorage.getItem("userId") || "1"
+      const authToken = localStorage.getItem("authToken")
+      
+      const formData = new FormData()
+      formData.append("archivo", file)
+      formData.append("subido_por_id", userId)
+      
+      const headers: Record<string, string> = {
+        "X-User-ID": userId,
+      }
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+      
+      const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: formData,
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.text()
+        throw new Error(errorData || "Error uploading file")
+      }
+      
+      toast({ title: "Éxito", description: `${file.name} subido correctamente` })
+      
+      // Reset file input
+      e.target.value = ""
+      
+      // Reload equipment details
+      await handleViewEquipmentDetails(selectedEquipment)
+    } catch (error) {
+      console.error("[v0] handleFileUpload - Error:", error)
+      toast({ variant: "destructive", title: "Error", description: "Error al subir imagen" })
+      e.target.value = ""
+    } finally {
+      setEquipmentLoading(false)
+    }
+  }
 
     try {
       setEquipmentLoading(true)
