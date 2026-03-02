@@ -6646,7 +6646,8 @@ export default function DashboardPage() {
                 }
 
                 console.log("[v0] Delete user: Starting deletion for id:", selectedUserToDelete)
-                const result = await removeUsuario(selectedUserToDelete)
+                console.log("[v0] Delete user: Current user id:", currentUser?.id)
+                const result = await removeUsuario(selectedUserToDelete, currentUser?.id)
                 console.log("[v0] Delete user: Result:", result)
                 
                 if (result.success) {
