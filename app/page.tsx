@@ -572,6 +572,20 @@ export default function DashboardPage() {
     }
   }, [])
 
+  // Sync form when editing user changes
+  useEffect(() => {
+    if (editingUser) {
+      setNewUser({
+        id: editingUser.id,
+        nombre: editingUser.nombre,
+        email: editingUser.email,
+        rol: editingUser.rol,
+        estado: editingUser.estado || "Activo",
+      })
+      setUserFormErrors({})
+    }
+  }, [editingUser])
+
   const loadEquipment = useCallback(async () => {
     console.log("[v0] loadEquipment - Starting with filters:", { currentPage, perPage, searchTerm, equipmentFilters })
     setEquipmentLoading(true)
@@ -4273,21 +4287,12 @@ export default function DashboardPage() {
                 setNewUser({ estado: "Activo" })
                 setUserFormErrors({})
               }, 0)
-            } else if (open && editingUser) {
-              // When opening for editing, populate the form with existing data
-              setNewUser({
-                id: editingUser.id,
-                nombre: editingUser.nombre,
-                email: editingUser.email,
-                rol: editingUser.rol,
-                estado: editingUser.estado || "Activo",
-              })
-              setUserFormErrors({})
             } else if (open && !editingUser) {
               // When opening for a new user, clear any previous state
               setNewUser({ estado: "Activo" })
               setUserFormErrors({})
             }
+            // When editing, useEffect will handle syncing the form
           }}
         >
           <DialogContent className="max-w-2xl">
