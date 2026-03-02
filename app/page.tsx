@@ -4341,11 +4341,6 @@ export default function DashboardPage() {
                   {userFormErrors.contrasena && <p className="text-red-500 text-xs">{userFormErrors.contrasena}</p>}
                 </div>
               )}
-              {editingUser && (
-                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                  Para cambiar la contraseña, usa el botón "Resetear Contraseña" en la lista de usuarios.
-                </div>
-              )}
               <div>
                 <Label htmlFor="rol">Rol *</Label>
                 <Select
@@ -4369,7 +4364,9 @@ export default function DashboardPage() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar rol" />
+                    <SelectValue placeholder="Seleccionar rol">
+                      {newUser.rol || "Seleccionar rol"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Técnico">Técnico</SelectItem>
