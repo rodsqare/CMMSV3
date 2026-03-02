@@ -2828,6 +2828,35 @@ export default function DashboardPage() {
       if (e.target) e.target.value = ""
     }
   }
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+      
+      const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: formData,
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.text()
+        throw new Error(errorData || "Error uploading file")
+      }
+      
+      toast({ title: "Éxito", description: `${file.name} subido correctamente` })
+      
+      // Refresh equipment details to show new document
+      if (selectedEquipment?.id) {
+        await handleViewEquipmentDetails(selectedEquipment)
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Error al subir documento" })
+    } finally {
+      setEquipmentLoading(false)
+      if (e.target) e.target.value = ""
+    }
+  }
 
     try {
       setEquipmentLoading(true)
