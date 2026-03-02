@@ -2786,52 +2786,9 @@ export default function DashboardPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedEquipment?.id) {
+      console.error("[v0] handleFileUpload - File or equipment missing")
       return
     }
-
-    try {
-      setEquipmentLoading(true)
-      const userId = localStorage.getItem("userId") || "1"
-      const authToken = localStorage.getItem("authToken")
-      
-      const formData = new FormData()
-      formData.append("archivo", file)
-      formData.append("subido_por_id", userId)
-      
-      const headers: Record<string, string> = {
-        "X-User-ID": userId,
-      }
-      if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`
-      }
-      
-      const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.text()
-        throw new Error(errorData || "Error uploading file")
-      }
-      
-      toast({ title: "Éxito", description: `${file.name} subido correctamente` })
-      
-      // Reset file input
-      e.target.value = ""
-      
-      // Reload equipment details
-      await handleViewEquipmentDetails(selectedEquipment)
-    } catch (error) {
-      console.error("[v0] handleFileUpload - Error:", error)
-      toast({ variant: "destructive", title: "Error", description: "Error al subir imagen" })
-      e.target.value = ""
-    } finally {
-      setEquipmentLoading(false)
-    }
-  }
 
     try {
       setEquipmentLoading(true)
@@ -3867,18 +3824,34 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-medium">Documentos Asociados</h3>
-                  <label 
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md cursor-pointer transition"
+                  <Button
+                    onClick={(e) => {
+                      console.error("[v0] === BUTTON CLICK DETECTED ===")
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const input = document.getElementById("fileInput") as HTMLInputElement
+                      console.error("[v0] Input element found:", input ? "YES" : "NO")
+                      if (input) {
+                        console.error("[v0] Triggering click on input")
+                        input.click()
+                      }
+                    }}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    Subir Imagen
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                  </label>
+                    Subir Archivo
+                  </Button>
+                  <input
+                    id="fileInput"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                    onChange={(e) => {
+                      console.error("[v0] File input onChange triggered", e.target.files?.length)
+                      handleFileUpload(e)
+                    }}
+                    className="hidden"
+                  />
                 </div>
                 <div className="space-y-2">
                   {(selectedEquipment.documentos || []).length > 0 ? (
