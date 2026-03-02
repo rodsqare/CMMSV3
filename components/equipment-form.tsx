@@ -248,9 +248,6 @@ export function EquipmentForm({ open, onOpenChange, equipment, onSuccess, userId
       }, 100)
     }
   }
-      }, 300)
-    }
-  }
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
