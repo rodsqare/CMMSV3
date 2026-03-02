@@ -2834,21 +2834,10 @@ export default function DashboardPage() {
       toast({ title: "Éxito", description: `${file.name} subido correctamente` })
       
       // Refresh equipment details to show new document
+      // Use handleViewEquipmentDetails to reload with proper transformation
       if (selectedEquipment?.id) {
-        try {
-          console.error("[v0] handleFileUpload - Fetching updated documents list...")
-          const docsResponse = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
-            credentials: "include",
-            headers: { "X-User-ID": userId, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-          })
-          if (docsResponse.ok) {
-            const docs = await docsResponse.json()
-            console.error("[v0] handleFileUpload - Documents fetched:", docs.length, "items")
-            setSelectedEquipment((prev: any) => prev ? { ...prev, documentos: docs } : prev)
-          }
-        } catch (refreshError) {
-          console.error("[v0] handleFileUpload - Error refreshing docs:", refreshError)
-        }
+        console.error("[v0] handleFileUpload - Reloading equipment details...")
+        await handleViewEquipmentDetails(selectedEquipment)
       }
     } catch (error) {
       console.error("[v0] handleFileUpload - Upload error:", error)
