@@ -357,25 +357,37 @@ export async function removeUsuario(id: number): Promise<{
   error?: string
 }> {
   try {
+    console.log("[v0] removeUsuario: Attempting to delete usuario with id:", id)
+    
     const usuario = await prisma.usuario.findUnique({ where: { id } })
+    
+    if (!usuario) {
+      console.log("[v0] removeUsuario: Usuario not found with id:", id)
+      return {
+        success: false,
+        error: "El usuario no existe",
+      }
+    }
+    
+    console.log("[v0] removeUsuario: Found usuario:", usuario.nombre, "- Deleting...")
     
     await prisma.usuario.delete({
       where: { id }
     })
     
+    console.log("[v0] removeUsuario: Usuario deleted successfully")
+    
     // Log the deletion
-    if (usuario) {
-      await createAuditLog({
-        accion: 'ELIMINAR',
-        modulo: 'USUARIOS',
-        descripcion: `Usuario ${usuario.nombre} eliminado`,
-        datos: { usuarioId: id, nombre: usuario.nombre }
-      }).catch(err => console.error("[v0] Error logging usuario deletion:", err))
-    }
+    await createAuditLog({
+      accion: 'ELIMINAR',
+      modulo: 'USUARIOS',
+      descripcion: `Usuario ${usuario.nombre} eliminado`,
+      datos: { usuarioId: id, nombre: usuario.nombre }
+    }).catch(err => console.error("[v0] Error logging usuario deletion:", err))
     
     return { success: true }
   } catch (error: any) {
-    console.error("Error removing usuario:", error)
+    console.error("[v0] Error removing usuario:", error.message, error.code)
     return {
       success: false,
       error: error.message || "Error al eliminar el usuario",

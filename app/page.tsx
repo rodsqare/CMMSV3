@@ -2298,54 +2298,6 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        {/* USER DELETE CONFIRMATION DIALOG */}
-        <Dialog open={isDeleteUserDialogOpen} onOpenChange={setIsDeleteUserDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirmar Eliminación</DialogTitle>
-              <DialogDescription>
-                ¿Está seguro de que desea eliminar este usuario? Esta acción no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsDeleteUserDialogOpen(false)
-                  setSelectedUserToDelete(null)
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={async () => {
-                  if (!selectedUserToDelete) return
-
-                  const result = await removeUsuario(selectedUserToDelete)
-                  if (result.success) {
-                    toast({
-                      title: "Usuario eliminado",
-                      description: "El usuario ha sido eliminado exitosamente",
-                    })
-                    setIsDeleteUserDialogOpen(false)
-                    setSelectedUserToDelete(null)
-                    await loadUsers()
-                  } else {
-                    toast({
-                      variant: "destructive",
-                      title: "Error al eliminar",
-                      description: result.error || "No se pudo eliminar el usuario",
-                    })
-                  }
-                }}
-              >
-                Eliminar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         {/* MAINTENANCE DELETE CONFIRMATION DIALOG */}
         <Dialog open={isDeleteMaintenanceDialogOpen} onOpenChange={setIsDeleteMaintenanceDialogOpen}>
           <DialogContent>
@@ -6688,9 +6640,15 @@ export default function DashboardPage() {
             <Button
               variant="destructive"
               onClick={async () => {
-                if (!selectedUserToDelete) return
+                if (!selectedUserToDelete) {
+                  console.log("[v0] Delete user: No user selected")
+                  return
+                }
 
+                console.log("[v0] Delete user: Starting deletion for id:", selectedUserToDelete)
                 const result = await removeUsuario(selectedUserToDelete)
+                console.log("[v0] Delete user: Result:", result)
+                
                 if (result.success) {
                   toast({
                     title: "Usuario eliminado",
@@ -6700,6 +6658,7 @@ export default function DashboardPage() {
                   setSelectedUserToDelete(null)
                   await loadUsers()
                 } else {
+                  console.log("[v0] Delete user: Error -", result.error)
                   toast({
                     variant: "destructive",
                     title: "Error al eliminar",
