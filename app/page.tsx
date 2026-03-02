@@ -2785,7 +2785,10 @@ export default function DashboardPage() {
   // CHANGE: Simplified handleFileUpload - remove complex dependencies
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !selectedEquipment?.id) return
+    if (!file || !selectedEquipment?.id) {
+      console.error("[v0] handleFileUpload - File or equipment missing")
+      return
+    }
 
     try {
       setEquipmentLoading(true)
@@ -2803,7 +2806,12 @@ export default function DashboardPage() {
         headers["Authorization"] = `Bearer ${authToken}`
       }
       
-      console.log("[v0] handleFileUpload - uploading file:", file.name, "for equipment:", selectedEquipment.id)
+      console.error("[v0] handleFileUpload - Starting upload:", {
+        fileName: file.name,
+        fileSize: file.size,
+        equipmentId: selectedEquipment.id,
+        userId: userId,
+      })
       
       const response = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
         method: "POST",
@@ -2812,6 +2820,8 @@ export default function DashboardPage() {
         body: formData,
       })
       
+      console.error("[v0] handleFileUpload - Response status:", response.status)
+      
       if (!response.ok) {
         const errorData = await response.text()
         console.error("[v0] handleFileUpload - Error response:", response.status, errorData)
@@ -2819,19 +2829,21 @@ export default function DashboardPage() {
       }
       
       const result = await response.json()
-      console.log("[v0] handleFileUpload - Upload successful:", result)
+      console.error("[v0] handleFileUpload - Upload successful, result:", result)
       
       toast({ title: "Éxito", description: `${file.name} subido correctamente` })
       
       // Refresh equipment details to show new document
       if (selectedEquipment?.id) {
         try {
+          console.error("[v0] handleFileUpload - Fetching updated documents list...")
           const docsResponse = await fetch(`/api/equipos/${selectedEquipment.id}/documentos`, {
             credentials: "include",
             headers: { "X-User-ID": userId, ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
           })
           if (docsResponse.ok) {
             const docs = await docsResponse.json()
+            console.error("[v0] handleFileUpload - Documents fetched:", docs.length, "items")
             setSelectedEquipment((prev: any) => prev ? { ...prev, documentos: docs } : prev)
           }
         } catch (refreshError) {
@@ -2839,7 +2851,7 @@ export default function DashboardPage() {
         }
       }
     } catch (error) {
-      console.error("[v0] Upload error:", error)
+      console.error("[v0] handleFileUpload - Upload error:", error)
       toast({ variant: "destructive", title: "Error", description: "Error al subir documento" })
     } finally {
       setEquipmentLoading(false)
