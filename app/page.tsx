@@ -4273,6 +4273,16 @@ export default function DashboardPage() {
                 setNewUser({ estado: "Activo" })
                 setUserFormErrors({})
               }, 0)
+            } else if (open && editingUser) {
+              // When opening for editing, populate the form with existing data
+              setNewUser({
+                id: editingUser.id,
+                nombre: editingUser.nombre,
+                email: editingUser.email,
+                rol: editingUser.rol,
+                estado: editingUser.estado || "Activo",
+              })
+              setUserFormErrors({})
             } else if (open && !editingUser) {
               // When opening for a new user, clear any previous state
               setNewUser({ estado: "Activo" })
@@ -4326,9 +4336,14 @@ export default function DashboardPage() {
                       setUserFormErrors({ ...userFormErrors, contrasena: "" })
                     }}
                     placeholder="Mínimo 6 caracteres"
-                    required={!editingUser}
+                    required
                   />
                   {userFormErrors.contrasena && <p className="text-red-500 text-xs">{userFormErrors.contrasena}</p>}
+                </div>
+              )}
+              {editingUser && (
+                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                  Para cambiar la contraseña, usa el botón "Resetear Contraseña" en la lista de usuarios.
                 </div>
               )}
               <div>

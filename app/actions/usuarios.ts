@@ -214,7 +214,7 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
     let savedUsuario: any
 
     if (usuario.id) {
-      // Update existing usuario
+      // Update existing usuario - password is OPTIONAL for updates
       const updateData: any = {
         nombre: usuario.nombre,
         email: email,
@@ -223,7 +223,8 @@ export async function saveUsuario(usuario: UsuarioWithPassword): Promise<{
         updated_at: new Date(),
       }
       
-      if (usuario.password) {
+      // Only update password if provided
+      if (usuario.password && usuario.password.trim() !== '') {
         updateData.password = await bcrypt.hash(usuario.password, 10)
       }
       
